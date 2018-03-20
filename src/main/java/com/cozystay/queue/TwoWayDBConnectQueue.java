@@ -27,10 +27,6 @@ public class TwoWayDBConnectQueue extends WorkerQueueImpl {
 
     }
 
-    @Override
-    protected boolean allowToAdd(DataMessage.Record newRecord) {
-        return false;
-    }
 
     @Override
     protected void work(DataMessage.Record toProcess) {

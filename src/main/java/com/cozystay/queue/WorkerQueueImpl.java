@@ -9,22 +9,25 @@ import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public abstract class WorkerQueueImpl implements WorkerQueue {
+    private final int delay;
+    private final int interval;
     Map<String, DataMessage.Record> processedRecords;
     ArrayBlockingQueue<DataMessage.Record> toDoTask;
     private Timer timer;
 
 
-    WorkerQueueImpl() {
+    public WorkerQueueImpl(int delay, int interval) {
+
         processedRecords = new HashMap<>();
         toDoTask = new ArrayBlockingQueue<>(1000);
+        this.delay = delay;
+        this.interval = interval;
     }
 
     synchronized public void addTask(DataMessage.Record newRecord) {
         //TODO: remove dumb record
         //TODO: if find record in processedRecord?
-        if (this.allowToAdd(newRecord)) {
-            this.toDoTask.add(newRecord);
-        }
+        this.toDoTask.add(newRecord);
     }
 
     public void start() {
@@ -41,14 +44,12 @@ public abstract class WorkerQueueImpl implements WorkerQueue {
 
         timer = new Timer("MyTimer");//create a new Timer
 
-        timer.scheduleAtFixedRate(timerTask, 30, 3000);//this line starts the timer at the same time its executed
+        timer.scheduleAtFixedRate(timerTask, this.delay, this.interval);//this line starts the timer at the same time its executed
     }
 
     public void stop() {
         timer.cancel();
     }
-
-    protected abstract boolean allowToAdd(DataMessage.Record newRecord);
 
 
     protected abstract void work(DataMessage.Record toProcess);
