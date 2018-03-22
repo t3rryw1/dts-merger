@@ -41,7 +41,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.aliyun.dts.demo.Main</mainClass>
+                            <mainClass>com.cozystay.Runner</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
