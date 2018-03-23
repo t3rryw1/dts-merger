@@ -31,6 +31,7 @@ public class SimpleDBWriterImpl implements Writer {
                     "user=" + this.user +
                     "&password=" + this.password);
 
+            //TODO: sql to write data
 
         } catch (SQLException e) {
             e.printStackTrace();

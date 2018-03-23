@@ -1,5 +1,6 @@
 package com.cozystay;
 
+import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.dts.AbstractDataSourceImpl;
 import com.cozystay.dts.DataSource;
 import com.cozystay.model.SyncTask;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Properties;
 
 public class Runner {
-    public static int MAX_DATABASE_SIZE = 10;
+    private static int MAX_DATABASE_SIZE = 10;
 
     public static void main(String[] args) throws Exception {
         System.out.print("DB Sync runner launched");
@@ -84,6 +85,34 @@ public class Runner {
                             return false;
                         }
 
+                        return false;
+                    }
+
+                    public boolean shouldFilterMessage(ClusterMessage message) {
+                        //TODO: filter out useless messages
+
+
+                        if (message.getRecord().getTablename() == null) {
+                            return true;
+                        }
+                        if (message.getRecord().getDbname() == null) {
+                            return true;
+                        }
+//
+//                    if (message.getRecord().getTablename().equals("calendar")) {
+//                        message.ackAsConsumed();
+//                        continue;
+//                    }
+//
+//                    /* 可打印数据 */
+//                    logger.error(message.getRecord().getDbname() + ":"
+//                            + message.getRecord().getTablename() + ":"
+//                            + message.getRecord().getOpt() + ":"
+//                            + message.getRecord().getTimestamp() + ":"
+//                            + message.getRecord());
+//
+//
+//                    // ackAsConsumed必须调用
                         return false;
                     }
 

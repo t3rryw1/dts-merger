@@ -4,3 +4,4 @@
 target/
 *.jar
 .DS_Store
+db-config.properties

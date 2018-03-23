@@ -85,7 +85,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             @Override
             public void notify(List<ClusterMessage> messages) throws Exception {
                 for (ClusterMessage message : messages) {
-                    if (_shouldFilterMessage(message)) {
+                    if (shouldFilterMessage(message)) {
                         message.ackAsConsumed();
                         continue;
                     }
@@ -127,33 +127,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
     }
 
 
-    private boolean _shouldFilterMessage(ClusterMessage message) {
-        //TODO: filter out useless messages
 
-
-        if (message.getRecord().getTablename() == null) {
-            return true;
-        }
-        if (message.getRecord().getDbname() == null) {
-            return true;
-        }
-//
-//                    if (message.getRecord().getTablename().equals("calendar")) {
-//                        message.ackAsConsumed();
-//                        continue;
-//                    }
-//
-//                    /* 可打印数据 */
-//                    logger.error(message.getRecord().getDbname() + ":"
-//                            + message.getRecord().getTablename() + ":"
-//                            + message.getRecord().getOpt() + ":"
-//                            + message.getRecord().getTimestamp() + ":"
-//                            + message.getRecord());
-//
-//
-//                    // ackAsConsumed必须调用
-        return false;
-    }
 
 
 }
