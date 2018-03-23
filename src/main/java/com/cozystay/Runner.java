@@ -45,6 +45,8 @@ public class Runner {
                 }
                 if(!processed){
                     taskPool.remove(task.getId());
+                }else{
+                    taskPool.add(task);
                 }
 
             }
@@ -67,7 +69,12 @@ public class Runner {
 
                     @Override
                     public boolean shouldConsume(SyncTask task) {
-                        return !taskPool.hasDuplicateTask(task);
+                        if (taskPool.hasCollideTask(task)) {
+                            SyncTask merged = taskPool.merge(task);
+                            queue.addTask(merged);
+                            return false;
+                        }
+                        return true;
                     }
 
                     @Override
