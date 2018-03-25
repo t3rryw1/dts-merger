@@ -4,6 +4,7 @@ import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.dts.AbstractDataSourceImpl;
 import com.cozystay.dts.DataSource;
 import com.cozystay.model.SyncTask;
+import com.cozystay.model.SyncTaskBuilder;
 import com.cozystay.structure.ProcessedTaskPool;
 import com.cozystay.structure.SimpleProcessedTaskPool;
 import com.cozystay.structure.SimpleWorkerQueueImpl;
@@ -14,41 +15,52 @@ import java.util.List;
 import java.util.Properties;
 
 public class Runner {
+    @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
 
     public static void main(String[] args) throws Exception {
         System.out.print("DB Sync runner launched");
         final List<DataSource> dataSources = new ArrayList<>();
-        final ProcessedTaskPool taskPool = new SimpleProcessedTaskPool() {
-            @Override
-            public boolean hasDuplicateTask(SyncTask task) {
-                return false;
-            }
-
-            @Override
-            public SyncTask merge(SyncTask task) {
-                return null;
-            }
-        };
-
+        final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
 
         final WorkerQueue queue = new SimpleWorkerQueueImpl(1, 20) {
+
             @Override
-            public void workOn(SyncTask task) {
-                boolean processed =false;
+            public void addTask(SyncTask newRecord) {
+                if(!pool.hasCollide(newRecord)){
+                    pool.add(newRecord);
+                    return;
+                }
+                SyncTask currentTask = pool.get(newRecord.getId());
+                if (currentTask.hasDone(newRecord)) {
+                    currentTask.setSourceFinished(newRecord.getSource());
+                    if (currentTask.allSourcesFinished()) {
+                        pool.remove(currentTask);
+                    } else {
+                        pool.add(currentTask);
+                    }
+                } else {
+                    SyncTask mergedTask = currentTask.merge(newRecord);
+                    pool.add(mergedTask);
+                }
+            }
+
+            @Override
+            public void workOn() {
+                SyncTask toProcess = pool.poll();
+
+                if (toProcess.allSourcesFinished()) {
+                    pool.remove(toProcess);
+                    return;
+                }
                 for (DataSource source :
                         dataSources) {
-                    if (source.shouldWriteDB(task)) {
-                        source.writeDB(task);
-                        processed =true;
+                    if (toProcess.shouldWriteSource(source.getName())) {
+                        source.writeDB(toProcess);
+                        toProcess.setSourceWritten(source.getName());
                     }
                 }
-                if(!processed){
-                    taskPool.remove(task.getId());
-                }else{
-                    taskPool.add(task);
-                }
-
+                pool.add(toProcess);
             }
         };
         queue.start();
@@ -67,33 +79,6 @@ public class Runner {
 
                     }
 
-                    @Override
-                    public boolean shouldConsume(SyncTask task) {
-                        if (taskPool.hasCollideTask(task)) {
-                            SyncTask merged = taskPool.merge(task);
-                            queue.addTask(merged);
-                            return false;
-                        }
-                        return true;
-                    }
-
-                    @Override
-                    public boolean shouldWriteDB(SyncTask task) {
-                        if (!super.shouldWriteDB(task)) {
-                            return false;
-                        }
-                        if (taskPool.hasDuplicateTask(task)) {
-                            return false;
-                        }
-
-                        if (taskPool.hasCollideTask(task)) {
-                            SyncTask merged = taskPool.merge(task);
-                            queue.addTask(merged);
-                            return false;
-                        }
-
-                        return false;
-                    }
 
                     public boolean shouldFilterMessage(ClusterMessage message) {
                         //TODO: filter out useless messages
@@ -119,7 +104,6 @@ public class Runner {
 //                            + message.getRecord());
 //
 //
-//                    // ackAsConsumed必须调用
                         return false;
                     }
 
@@ -127,6 +111,7 @@ public class Runner {
 
                 source.start();
                 dataSources.add(source);
+                SyncTaskBuilder.addSource(source.getName());
 
 
             } catch (Exception e) {

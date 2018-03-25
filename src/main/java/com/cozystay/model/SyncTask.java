@@ -1,26 +1,42 @@
 package com.cozystay.model;
 
+import com.cozystay.dts.DataSource;
 
-import java.util.List;
+public interface SyncTask {
 
-public class SyncTask {
-    public final String database;
-    public final String tableName;
-    public final List<SyncItem> updateFields;
-    public final String source;
-    public final String uuid;
+    boolean hasDone(SyncTask newRecord);
 
-    public String getId(){
-        return database+tableName+uuid;
+    String getSource();
+
+    void setSourceFinished(String source);
+
+    boolean allSourcesFinished();
+
+    boolean contains(SyncTask task);
+
+    SyncTaskImpl merge(SyncTask task);
+
+    String getId();
+
+    String getDatabase();
+
+    String buildSql();
+
+
+    boolean shouldWriteSource(String source);
+
+    void setSourceWritten(String name);
+
+    enum SyncStatus{
+        INITED,
+        SEND,
+        COMPLETED
     }
 
-    SyncTask(String source, String uuid, String database, String tableName, List<SyncItem> items) {
-        this.database = database;
-        this.tableName = tableName;
-
-        updateFields = items;
-        this.source = source;
-        this.uuid = uuid;
+    class SyncItem<T> {
+        public String fieldName;
+        public T originValue;
+        public T currentValue;
     }
 
 }

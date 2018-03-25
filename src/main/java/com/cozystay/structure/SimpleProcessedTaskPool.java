@@ -4,7 +4,7 @@ import com.cozystay.model.SyncTask;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class SimpleProcessedTaskPool implements ProcessedTaskPool {
+public  class SimpleProcessedTaskPool implements ProcessedTaskPool {
     ConcurrentHashMap<String, SyncTask> taskMap;
 
     public SimpleProcessedTaskPool() {
@@ -27,8 +27,13 @@ public abstract class SimpleProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
-    public boolean hasCollideTask(SyncTask task) {
-        return taskMap.containsKey(task.getId());
+    public boolean hasCollide(SyncTask task) {
+        return false;
+    }
+
+    @Override
+    public SyncTask poll() {
+        return null;
     }
 
     @Override

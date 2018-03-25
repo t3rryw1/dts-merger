@@ -1,27 +1,18 @@
 package com.cozystay.structure;
 
-import com.cozystay.model.SyncTask;
-
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ArrayBlockingQueue;
 
 public abstract class SimpleWorkerQueueImpl implements WorkerQueue {
     private final int delay;
     private final int interval;
-    private ArrayBlockingQueue<SyncTask> toDoTask;
     private Timer timer;
 
 
-    public SimpleWorkerQueueImpl(int delay, int interval) {
+    protected SimpleWorkerQueueImpl(int delay, int interval) {
 
-        toDoTask = new ArrayBlockingQueue<>(1000);
         this.delay = delay;
         this.interval = interval;
-    }
-
-    synchronized public void addTask(SyncTask newRecord) {
-        this.toDoTask.add(newRecord);
     }
 
     public void start() {
@@ -29,8 +20,8 @@ public abstract class SimpleWorkerQueueImpl implements WorkerQueue {
 
             @Override
             public void run() {
-                SyncTask toProcess = toDoTask.poll();
-                workOn(toProcess);
+                workOn();
+
             }
         };
 

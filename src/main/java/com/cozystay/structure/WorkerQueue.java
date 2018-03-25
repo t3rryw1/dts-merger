@@ -3,12 +3,12 @@ package com.cozystay.structure;
 import com.cozystay.model.SyncTask;
 
 public interface WorkerQueue {
-    public void addTask(SyncTask newTask);
+    void addTask(SyncTask newTask);
 
-    public void workOn(SyncTask task);
+    void start();
 
-    public void start();
+    void workOn();
 
-    public void stop();
+    void stop();
 
 }
