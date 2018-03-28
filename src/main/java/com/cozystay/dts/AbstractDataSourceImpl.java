@@ -13,6 +13,7 @@ import com.cozystay.model.SyncTaskBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Properties;
 
@@ -29,26 +30,26 @@ public abstract class AbstractDataSourceImpl implements DataSource {
         String dbAddress, accessKey, accessSecret, subscribeInstanceID, dbUser, dbPassword;
         int dbPort;
         if ((dbAddress = prop.getProperty(prefix + ".dbAddress")) == null) {
-            throw new Exception(prefix + ".dbAddress");
+            throw new ParseException(prefix + ".dbAddress",1);
         }
         if ((dbUser = prop.getProperty(prefix + ".dbUser")) == null) {
-            throw new Exception(prefix + ".dbAddress");
+            throw new ParseException(prefix + ".dbAddress",1);
         }
         if ((dbPassword = prop.getProperty(prefix + ".dbPassword")) == null) {
-            throw new Exception(prefix + ".dbAddress");
+            throw new ParseException(prefix + ".dbAddress",1);
         }
-        if ((dbPort = Integer.valueOf(prop.getProperty(prefix + ".dbAddress"))) <= 0) {
-            throw new Exception(prefix + ".dbAddress");
+        if ((dbPort = Integer.valueOf(prop.getProperty(prefix + ".dbPort"))) <= 0) {
+            throw new ParseException(prefix + ".dbAddress",1);
         }
 
         if ((accessKey = prop.getProperty(prefix + ".accessKey")) == null) {
-            throw new Exception(prefix + ".dbAddress");
+            throw new ParseException(prefix + ".dbAddress",1);
         }
         if ((accessSecret = prop.getProperty(prefix + ".accessSecret")) == null) {
-            throw new Exception(prefix + ".dbAddress");
+            throw new ParseException(prefix + ".dbAddress",1);
         }
         if ((subscribeInstanceID = prop.getProperty(prefix + ".subscribeInstanceID")) == null) {
-            throw new Exception(prefix + ".dbAddress");
+            throw new ParseException(prefix + ".dbAddress",1);
         }
 
 

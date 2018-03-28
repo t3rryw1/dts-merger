@@ -10,6 +10,7 @@ import com.cozystay.structure.SimpleProcessedTaskPool;
 import com.cozystay.structure.SimpleWorkerQueueImpl;
 import com.cozystay.structure.WorkerQueue;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -40,7 +41,7 @@ public class Runner {
                         pool.add(currentTask);
                     }
                 } else {
-                    SyncTask mergedTask = currentTask.merge(newRecord);
+                    SyncTask mergedTask = currentTask .merge(newRecord);
                     pool.add(mergedTask);
                 }
             }
@@ -48,6 +49,9 @@ public class Runner {
             @Override
             public void workOn() {
                 SyncTask toProcess = pool.poll();
+                if(toProcess==null){
+                    return;
+                }
 
                 if (toProcess.allSourcesFinished()) {
                     pool.remove(toProcess);
@@ -71,6 +75,7 @@ public class Runner {
 
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             try {
+
 
                 final DataSource source = new AbstractDataSourceImpl(prop,"db"+i) {
                     @Override
@@ -114,10 +119,13 @@ public class Runner {
                 SyncTaskBuilder.addSource(source.getName());
 
 
-            } catch (Exception e) {
-                System.out.println("Error starting DBConsumer " + i);
-                e.printStackTrace();
+            } catch (ParseException e) {
+                System.out.println("Could not find DBConsumer" + i);
+                System.out.println("Running with " + (i-1)+" consumers");
+
                 break;
+            }catch (Exception e){
+                e.printStackTrace();
             }
 
 
