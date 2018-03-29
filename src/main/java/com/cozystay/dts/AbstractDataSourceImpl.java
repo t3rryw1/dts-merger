@@ -1,5 +1,7 @@
 package com.cozystay.dts;
 
+import com.alibaba.fastjson.JSONObject;
+import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.ClusterClient;
 import com.aliyun.drc.clusterclient.ClusterListener;
 import com.aliyun.drc.clusterclient.DefaultClusterClient;
@@ -13,6 +15,7 @@ import com.cozystay.model.SyncTaskBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Properties;
@@ -91,8 +94,10 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                         continue;
                     }
                     SyncTask task = SyncTaskBuilder.build(message, subscribeInstanceID);
+                    if(task!=null){
+                        consumeData(task);
+                    }
 
-                    consumeData(task);
 
                     message.ackAsConsumed();
 
@@ -125,6 +130,51 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             e.printStackTrace();
         }
     }
+
+
+    public boolean shouldFilterMessage(ClusterMessage message) {
+        //TODO: filter out useless messages
+
+
+        DataMessage.Record record = message.getRecord();
+
+        if (record.getTablename() == null) {
+            return true;
+        }
+        if (record.getDbname() == null) {
+            return true;
+        }
+
+        System.out.println("Record Op type:" + record.getOpt().toString());
+        switch (record.getOpt()) {
+            case INSERT: // 数据插入
+            case UPDATE:// 数据更新
+            case REPLACE:// replace操作
+            case DELETE:// 数据删除
+                return false;
+            default:
+                return true;
+        }
+        //TODO:  if nothing changes, abandon
+        //TODO:  if only timestamp changes, abandon the message
+        //TODO: if not a db commit message abandon
+        //
+//
+//                    if (message.getRecord().getTablename().equals("calendar")) {
+//                        message.ackAsConsumed();
+//                        continue;
+//                    }
+//
+//                    /* 可打印数据 */
+//                    logger.error(message.getRecord().getDbname() + ":"
+//                            + message.getRecord().getTablename() + ":"
+//                            + message.getRecord().getOpt() + ":"
+//                            + message.getRecord().getTimestamp() + ":"
+//                            + message.getRecord());
+//
+//
+    }
+
 
 
 }

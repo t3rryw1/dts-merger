@@ -1,8 +1,6 @@
 package com.cozystay.model;
 
-import com.cozystay.dts.DataSource;
-
-public interface SyncTask {
+public interface SyncTask extends Cloneable{
 
     boolean hasDone(SyncTask newRecord);
 
@@ -31,6 +29,10 @@ public interface SyncTask {
         INITED,
         SEND,
         COMPLETED
+    }
+
+    class SyncOperation{
+        
     }
 
     class SyncItem<T> {

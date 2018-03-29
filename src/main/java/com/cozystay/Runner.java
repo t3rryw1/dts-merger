@@ -1,5 +1,7 @@
 package com.cozystay;
 
+import com.alibaba.fastjson.JSONObject;
+import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.dts.AbstractDataSourceImpl;
 import com.cozystay.dts.DataSource;
@@ -85,32 +87,6 @@ public class Runner {
                     }
 
 
-                    public boolean shouldFilterMessage(ClusterMessage message) {
-                        //TODO: filter out useless messages
-
-
-                        if (message.getRecord().getTablename() == null) {
-                            return true;
-                        }
-                        if (message.getRecord().getDbname() == null) {
-                            return true;
-                        }
-//
-//                    if (message.getRecord().getTablename().equals("calendar")) {
-//                        message.ackAsConsumed();
-//                        continue;
-//                    }
-//
-//                    /* 可打印数据 */
-//                    logger.error(message.getRecord().getDbname() + ":"
-//                            + message.getRecord().getTablename() + ":"
-//                            + message.getRecord().getOpt() + ":"
-//                            + message.getRecord().getTimestamp() + ":"
-//                            + message.getRecord());
-//
-//
-                        return false;
-                    }
 
                 };
 

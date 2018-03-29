@@ -13,7 +13,7 @@
         <dependency>
             <groupId>com.aliyun.dts</groupId>
             <artifactId>dts-subscribe-sdk</artifactId>
-            <version>4.8.3.12.3</version>
+            <version>4.6.27.12.0</version>
         </dependency>
 
         <!-- 具体的日志框架log4j12桥接实现slf4j，后续还需配置日志输出 -->
