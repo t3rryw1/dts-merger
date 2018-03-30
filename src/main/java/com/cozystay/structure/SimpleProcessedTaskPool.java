@@ -34,7 +34,7 @@ public class SimpleProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
-    public boolean hasCollide(SyncTask task) {
+    public boolean hasTask(SyncTask task) {
         return taskMap.containsKey(task.getId());
     }
 

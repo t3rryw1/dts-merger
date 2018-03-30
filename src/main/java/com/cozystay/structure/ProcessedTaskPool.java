@@ -9,7 +9,7 @@ public interface ProcessedTaskPool {
 
     void remove(String taskId);
 
-    boolean hasCollide(SyncTask task);
+    boolean hasTask(SyncTask task);
 
     SyncTask poll();
 

@@ -28,7 +28,7 @@ public class Runner {
 
             @Override
             public void addTask(SyncTask newRecord) {
-                if(!pool.hasCollide(newRecord)){
+                if(!pool.hasTask(newRecord)){
                     pool.add(newRecord);
                     return;
                 }
