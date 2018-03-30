@@ -1,6 +1,5 @@
 package com.cozystay.dts;
 
-import com.alibaba.fastjson.JSONObject;
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.ClusterClient;
 import com.aliyun.drc.clusterclient.ClusterListener;
@@ -9,13 +8,12 @@ import com.aliyun.drc.clusterclient.RegionContext;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.db.SimpleDBWriterImpl;
 import com.cozystay.db.Writer;
+import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
-import com.cozystay.model.SyncTaskImpl;
 import com.cozystay.model.SyncTaskBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Properties;
@@ -73,8 +71,8 @@ public abstract class AbstractDataSourceImpl implements DataSource {
     }
 
     @Override
-    public void writeDB(SyncTask task) {
-        this.writer.write(task);
+    public void writeDB(SyncOperation operation) {
+        this.writer.write(operation);
     }
 
     @Override

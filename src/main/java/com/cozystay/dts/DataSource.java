@@ -1,8 +1,8 @@
 package com.cozystay.dts;
 
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
+import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
-import com.cozystay.model.SyncTaskImpl;
 
 //load from .properties, read Record from DTS and pass it to its callback
 public interface DataSource {
@@ -13,7 +13,7 @@ public interface DataSource {
 
 //    boolean shouldWriteDB(SyncTask task);
 
-    void writeDB(SyncTask task);
+    void writeDB(SyncOperation operation);
 
     void start();
 

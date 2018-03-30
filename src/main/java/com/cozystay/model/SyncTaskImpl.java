@@ -1,59 +1,35 @@
 package com.cozystay.model;
 
 
-import com.aliyun.drc.client.message.DataMessage;
-
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-public class SyncTaskImpl implements SyncTask{
+public class SyncTaskImpl implements SyncTask {
 
     public final String database;
     public final String tableName;
-    public final List<SyncItem> finalFields;
-    public final List<SyncTask> histories;
 
-    public final Map<String,SyncTask.SyncStatus> statusMap;
-
-    public final String source;
     public final String uuid;
 
-    private DataMessage.Record.Type operationType;
+    public final List<SyncOperation> operations;
 
 
-    SyncTaskImpl(String source,
-                 String uuid,
-                 String database,
-                 String tableName,
-                 DataMessage.Record.Type operationType,
-                 List<SyncItem> items) {
+    SyncTaskImpl(
+            String uuid,
+            String database,
+            String tableName) {
 
         this.database = database;
         this.tableName = tableName;
 
-        finalFields = items;
-        this.source = source;
         this.uuid = uuid;
-        this.operationType = operationType;
-        histories = new LinkedList<>();
-        statusMap = new HashMap<>();
+        operations = new LinkedList<>();
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
 
     @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    @Override
-    public String getId(){
-        return database+tableName+uuid;
+    public String getId() {
+        return database + tableName + uuid;
     }
 
     @Override
@@ -61,49 +37,55 @@ public class SyncTaskImpl implements SyncTask{
         return this.database;
     }
 
+
     @Override
-    public String buildSql() {
-        return null;
+    public String getTable() {
+        return this.tableName;
     }
 
     @Override
-    public boolean shouldWriteSource(String source) {
-        return false;
+    public List<SyncOperation> getOperations() {
+        return this.operations;
     }
 
     @Override
-    public void setSourceWritten(String name) {
-
-    }
-
-
-    @Override
-    public boolean hasDone(SyncTask newRecord) {
-        return false;
-    }
-
-    @Override
-    public String getSource() {
-        return null;
+    public boolean completeAllOperations() {
+        for (SyncOperation operation : operations) {
+            if (!operation.completedAllSources()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
-    public void setSourceFinished(String source) {
+    public SyncTask merge(SyncTask task) {
+        if (!task.getId().equals(this.getId())) {
+            return null;
+        }
+        List<SyncOperation> toMergeOps = task.getOperations();
+        List<SyncOperation> selfOps = getOperations();
+
+        toMerge:
+        for (SyncOperation toMergeOp : toMergeOps) {
+            for (SyncOperation selfOp : selfOps) {
+                if (toMergeOp.isSameOperation(selfOp)) {
+                    selfOp.merge(toMergeOp);
+                    continue toMerge;
+                }
+                if(toMergeOp.collideWith(selfOp)){
+                    addOperation(selfOp.resolveCollide(toMergeOp));
+                    continue toMerge;
+                }
+            }
+            addOperation(toMergeOp);
+        }
+        return this;
 
     }
 
-    @Override
-    public boolean allSourcesFinished() {
-        return false;
-    }
-
-    @Override
-    public boolean contains(SyncTask task){
-        return false;
-    }
-
-    @Override
-    public SyncTaskImpl merge(SyncTask task){
-        return null;
+    void addOperation(SyncOperation operation) {
+        this.operations.add(operation);
+        operation.setTask(this);
     }
 }

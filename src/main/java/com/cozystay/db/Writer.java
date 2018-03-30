@@ -1,7 +1,7 @@
 package com.cozystay.db;
 
-import com.cozystay.model.SyncTask;
+import com.cozystay.model.SyncOperation;
 
 public interface Writer {
-    void write(SyncTask task);
+    void write(SyncOperation task);
 }

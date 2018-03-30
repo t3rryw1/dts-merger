@@ -1,44 +1,20 @@
 package com.cozystay.model;
 
-public interface SyncTask extends Cloneable{
+import java.util.List;
 
-    boolean hasDone(SyncTask newRecord);
+public interface SyncTask extends Cloneable {
 
-    String getSource();
+    boolean completeAllOperations();
 
-    void setSourceFinished(String source);
-
-    boolean allSourcesFinished();
-
-    boolean contains(SyncTask task);
-
-    SyncTaskImpl merge(SyncTask task);
+    SyncTask merge(SyncTask task);
 
     String getId();
 
     String getDatabase();
 
-    String buildSql();
+    String getTable();
 
+    List<SyncOperation> getOperations();
 
-    boolean shouldWriteSource(String source);
-
-    void setSourceWritten(String name);
-
-    enum SyncStatus{
-        INITED,
-        SEND,
-        COMPLETED
-    }
-
-    class SyncOperation{
-        
-    }
-
-    class SyncItem<T> {
-        public String fieldName;
-        public T originValue;
-        public T currentValue;
-    }
 
 }

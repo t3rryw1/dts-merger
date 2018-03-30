@@ -1,10 +1,8 @@
 package com.cozystay;
 
-import com.alibaba.fastjson.JSONObject;
-import com.aliyun.drc.client.message.DataMessage;
-import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.dts.AbstractDataSourceImpl;
 import com.cozystay.dts.DataSource;
+import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
 import com.cozystay.structure.ProcessedTaskPool;
@@ -35,17 +33,23 @@ public class Runner {
                     return;
                 }
                 SyncTask currentTask = pool.get(newRecord.getId());
-                if (currentTask.hasDone(newRecord)) {
-                    currentTask.setSourceFinished(newRecord.getSource());
-                    if (currentTask.allSourcesFinished()) {
-                        pool.remove(currentTask);
-                    } else {
-                        pool.add(currentTask);
-                    }
-                } else {
-                    SyncTask mergedTask = currentTask .merge(newRecord);
+                SyncTask mergedTask = currentTask .merge(newRecord);
+                if(mergedTask.completeAllOperations()){
+                    pool.remove(currentTask);
+                }else{
                     pool.add(mergedTask);
                 }
+
+//                if (currentTask.hasDone(newRecord)) {
+//
+//                    currentTask.setSourceFinished(newRecord.getSource());
+//                    if (currentTask.allSourcesFinished()) {
+//                    } else {
+//                        pool.add(currentTask);
+//                    }
+//                } else {
+//                    pool.add(mergedTask);
+//                }
             }
 
             @Override
@@ -55,15 +59,17 @@ public class Runner {
                     return;
                 }
 
-                if (toProcess.allSourcesFinished()) {
+                if(toProcess.completeAllOperations()) {
                     pool.remove(toProcess);
-                    return;
                 }
+
                 for (DataSource source :
                         dataSources) {
-                    if (toProcess.shouldWriteSource(source.getName())) {
-                        source.writeDB(toProcess);
-                        toProcess.setSourceWritten(source.getName());
+                    for(SyncOperation operation: toProcess.getOperations()){
+                        if(operation.shouldSendToSource(source.getName())){
+                            source.writeDB(operation);
+                            operation.setSourceSend(source.getName());
+                        }
                     }
                 }
                 pool.add(toProcess);
