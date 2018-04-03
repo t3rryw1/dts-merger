@@ -1,13 +1,17 @@
 package com.cozystay.model;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 public interface SyncOperation {
 
     SyncTask getTask();
+
+    Date getTime();
 
     OperationType getOperationType();
 
@@ -25,9 +29,9 @@ public interface SyncOperation {
 
     void setSourceSend(String name);
 
-    void merge(SyncOperation toMergeOp);
+    void mergeStatus(SyncOperation toMergeOp);
 
-    boolean completedAllSources();
+    boolean allSourcesCompleted();
 
     void setTask(SyncTask syncTask);
 
@@ -37,7 +41,7 @@ public interface SyncOperation {
 
 
     enum SyncStatus {
-        INITED,
+        INIT,
         SEND,
         COMPLETED
     }
@@ -66,11 +70,11 @@ public interface SyncOperation {
             if (!(obj instanceof SyncItem))
                 return false;
             SyncItem item = (SyncItem) obj;
-            return item.fieldName.equals(fieldName)
-                    &&
-                    item.currentValue.equals(currentValue)
-                    &&
-                    item.originValue.equals(originValue);
+            return new EqualsBuilder()
+                    .append(fieldName,item.fieldName)
+                    .append(currentValue,item.currentValue)
+                    .append(originValue,item.originValue)
+                    .isEquals();
         }
 
         @Override
@@ -80,7 +84,6 @@ public interface SyncOperation {
                     .append(currentValue)
                     .append(originValue)
                     .toHashCode();
-//            return Objects.hashCode(fieldName, currentValue, originValue);
         }
     }
 

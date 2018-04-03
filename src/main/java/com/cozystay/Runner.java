@@ -34,22 +34,12 @@ public class Runner {
                 }
                 SyncTask currentTask = pool.get(newRecord.getId());
                 SyncTask mergedTask = currentTask .merge(newRecord);
-                if(mergedTask.completeAllOperations()){
+                if(mergedTask.allOperationsCompleted()){
                     pool.remove(currentTask);
                 }else{
                     pool.add(mergedTask);
                 }
 
-//                if (currentTask.hasDone(newRecord)) {
-//
-//                    currentTask.setSourceFinished(newRecord.getSource());
-//                    if (currentTask.allSourcesFinished()) {
-//                    } else {
-//                        pool.add(currentTask);
-//                    }
-//                } else {
-//                    pool.add(mergedTask);
-//                }
             }
 
             @Override
@@ -59,7 +49,7 @@ public class Runner {
                     return;
                 }
 
-                if(toProcess.completeAllOperations()) {
+                if(toProcess.allOperationsCompleted()) {
                     pool.remove(toProcess);
                 }
 
@@ -84,15 +74,12 @@ public class Runner {
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             try {
 
-
                 final DataSource source = new AbstractDataSourceImpl(prop,"db"+i) {
                     @Override
                     public void consumeData(SyncTask task) {
                         queue.addTask(task);
 
                     }
-
-
 
                 };
 

@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface SyncTask extends Cloneable {
 
-    boolean completeAllOperations();
+    boolean allOperationsCompleted();
 
     SyncTask merge(SyncTask task);
 
@@ -16,5 +16,6 @@ public interface SyncTask extends Cloneable {
 
     List<SyncOperation> getOperations();
 
+    void addOperation(SyncOperation operation);
 
 }

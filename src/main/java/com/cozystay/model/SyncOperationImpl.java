@@ -1,37 +1,46 @@
 package com.cozystay.model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.apache.commons.lang3.time.DateUtils;
+
+import java.util.*;
 
 public class SyncOperationImpl implements SyncOperation {
     private SyncTask task;
     private final OperationType operationType;
     private List<SyncItem> syncItems;
     private final Map<String, SyncStatus> syncStatusMap;
+    private final Date operationTime;
 
-    public SyncOperationImpl(SyncTask task,
+    SyncOperationImpl(SyncTask task,
                              OperationType operationType,
                              List<SyncItem> syncItems,
                              String source,
-                             List<String> sourceList) {
+                             List<String> sourceList,
+                             Date operationTime) {
         this.task = task;
         this.operationType = operationType;
         this.syncItems = syncItems;
+        this.operationTime = operationTime;
         this.syncStatusMap = new HashMap<>();
         for (String sourceName : sourceList) {
-            syncStatusMap.put(sourceName, SyncStatus.INITED);
+            syncStatusMap.put(sourceName, SyncStatus.INIT);
         }
-        if (!syncStatusMap.containsKey(source)) {
-            throw new IllegalArgumentException("Source " + source + " is not in Source list");
+        if(source!=null){
+            if (!syncStatusMap.containsKey(source)) {
+                throw new IllegalArgumentException("Source " + source + " is not in Source list");
+            }
+            syncStatusMap.put(source, SyncStatus.COMPLETED);
         }
-        syncStatusMap.put(source, SyncStatus.COMPLETED);
     }
 
     @Override
     public SyncTask getTask() {
         return this.task;
+    }
+
+    @Override
+    public Date getTime() {
+        return this.operationTime;
     }
 
     @Override
@@ -59,6 +68,9 @@ public class SyncOperationImpl implements SyncOperation {
     public boolean isSameOperation(SyncOperation operation) {
         if (!operation.getOperationType().equals(this.getOperationType()))
             return false;
+        //if both operation are to delete the item, consider them the same operation
+        if (operation.getOperationType().equals(OperationType.DELETE))
+            return true;
         if (!operation.getSyncItems().containsAll(this.getSyncItems())) {
             return false;
         }
@@ -76,7 +88,7 @@ public class SyncOperationImpl implements SyncOperation {
 
     @Override
     public boolean shouldSendToSource(String name) {
-        return this.syncStatusMap.get(name).equals(SyncStatus.INITED);
+        return this.syncStatusMap.get(name).equals(SyncStatus.INIT);
     }
 
     @Override
@@ -85,12 +97,19 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
-    public void merge(SyncOperation toMergeOp) {
+    public void mergeStatus(SyncOperation toMergeOp) {
+        List<String> keys = new ArrayList<>(syncStatusMap.keySet());
+        for (String key : keys) {
+            SyncStatus status = toMergeOp.getSyncStatus().get(key);
+            if (status.compareTo(this.syncStatusMap.get(key)) > 0) {
+                this.syncStatusMap.put(key, status);
+            }
+        }
 
     }
 
     @Override
-    public boolean completedAllSources() {
+    public boolean allSourcesCompleted() {
         List<SyncStatus> list = new ArrayList<>(syncStatusMap.values());
         for (SyncStatus status : list) {
             if (status != SyncStatus.COMPLETED) {
@@ -107,8 +126,11 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
-    public boolean collideWith(SyncOperation selfOp) {
-        List<SyncItem> toCompareItems = selfOp.getSyncItems();
+    public boolean collideWith(SyncOperation toCompareOp) {
+        if (!toCompareOp.getOperationType().equals(this.getOperationType()))
+            return false;
+
+        List<SyncItem> toCompareItems = toCompareOp.getSyncItems();
         List<SyncItem> myItems = getSyncItems();
 
         for (SyncItem toCompareItem : toCompareItems) {
@@ -122,6 +144,45 @@ public class SyncOperationImpl implements SyncOperation {
 
     @Override
     public SyncOperation resolveCollide(SyncOperation toMergeOp) {
-        return null;
+        if (!toMergeOp.getOperationType().equals(this.getOperationType()))
+            return null;
+        OperationType operationType = toMergeOp.getOperationType();
+        List<SyncItem> selfItems = this.getSyncItems();
+        List<SyncItem> toMergeItems = toMergeOp.getSyncItems();
+        List<SyncItem> mergedItems = new ArrayList<>();
+        Collections.copy(mergedItems,toMergeItems);
+        nextToMergeItem:
+        for(SyncItem toMergeItem : toMergeOp.getSyncItems()){
+            for(SyncItem selfItem : selfItems){
+                if(selfItem.fieldName.equals(toMergeItem.fieldName)){
+                    //found item with same field, check timestamp,
+                    //replace item with newer one if necessary
+                    if(toMergeOp.getTime().after(this.getTime())){
+                        mergedItems.remove(selfItem);
+                        mergedItems.add(toMergeItem);
+                    }
+                    //if replaced, go to next toMergeItem
+                    continue nextToMergeItem;
+                }
+            }
+            //if no match found in selfItems, add the item to itemList
+            mergedItems.add(toMergeItem);
+        }
+        Date operationTime = toMergeOp.getTime().after(this.getTime())
+                ?
+                toMergeOp.getTime()
+                :
+                getTime();
+        operationTime = DateUtils.addSeconds(operationTime,1);
+        List<String> sourceList = new ArrayList<>(syncStatusMap.keySet());
+
+        return new SyncOperationImpl(
+                this.getTask(),
+                operationType,
+                mergedItems,
+                null,
+                sourceList,
+                operationTime
+        );
     }
 }

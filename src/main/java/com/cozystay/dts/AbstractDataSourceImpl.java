@@ -91,7 +91,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                         message.ackAsConsumed();
                         continue;
                     }
-                    SyncTask task = SyncTaskBuilder.build(message, subscribeInstanceID);
+                    SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID);
                     if(task!=null){
                         consumeData(task);
                     }
@@ -131,8 +131,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
 
 
     public boolean shouldFilterMessage(ClusterMessage message) {
-        //TODO: filter out useless messages
-
+        //filter out useless messages
 
         DataMessage.Record record = message.getRecord();
 
@@ -151,26 +150,11 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             case DELETE:// 数据删除
                 return false;
             default:
+                //if not a db commit message abandon
                 return true;
         }
         //TODO:  if nothing changes, abandon
         //TODO:  if only timestamp changes, abandon the message
-        //TODO: if not a db commit message abandon
-        //
-//
-//                    if (message.getRecord().getTablename().equals("calendar")) {
-//                        message.ackAsConsumed();
-//                        continue;
-//                    }
-//
-//                    /* 可打印数据 */
-//                    logger.error(message.getRecord().getDbname() + ":"
-//                            + message.getRecord().getTablename() + ":"
-//                            + message.getRecord().getOpt() + ":"
-//                            + message.getRecord().getTimestamp() + ":"
-//                            + message.getRecord());
-//
-//
     }
 
 

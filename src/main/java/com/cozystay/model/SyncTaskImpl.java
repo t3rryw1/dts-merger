@@ -1,6 +1,8 @@
 package com.cozystay.model;
 
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,7 +39,6 @@ public class SyncTaskImpl implements SyncTask {
         return this.database;
     }
 
-
     @Override
     public String getTable() {
         return this.tableName;
@@ -49,9 +50,9 @@ public class SyncTaskImpl implements SyncTask {
     }
 
     @Override
-    public boolean completeAllOperations() {
+    public boolean allOperationsCompleted() {
         for (SyncOperation operation : operations) {
-            if (!operation.completedAllSources()) {
+            if (!operation.allSourcesCompleted()) {
                 return false;
             }
         }
@@ -70,7 +71,7 @@ public class SyncTaskImpl implements SyncTask {
         for (SyncOperation toMergeOp : toMergeOps) {
             for (SyncOperation selfOp : selfOps) {
                 if (toMergeOp.isSameOperation(selfOp)) {
-                    selfOp.merge(toMergeOp);
+                    selfOp.mergeStatus(toMergeOp);
                     continue toMerge;
                 }
                 if(toMergeOp.collideWith(selfOp)){
@@ -80,11 +81,21 @@ public class SyncTaskImpl implements SyncTask {
             }
             addOperation(toMergeOp);
         }
+        Collections.sort(this.operations, new Comparator<SyncOperation>() {
+            @Override
+            public int compare(SyncOperation o1, SyncOperation o2) {
+                if(!o1.getOperationType().equals(o2.getOperationType())){
+                    return o1.getOperationType().compareTo(o2.getOperationType());
+                    //
+                }
+                return o1.getTime().after(o2.getTime())?1:-1;
+            }
+        });
         return this;
 
     }
 
-    void addOperation(SyncOperation operation) {
+    public void addOperation(SyncOperation operation) {
         this.operations.add(operation);
         operation.setTask(this);
     }
