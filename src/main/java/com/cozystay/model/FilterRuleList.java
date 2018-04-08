@@ -8,7 +8,18 @@ public class FilterRuleList {
 
     public boolean filter(SyncOperation operation) {
 
-        return false;
+        List<SyncOperation.SyncItem> items = operation.getSyncItems();
+
+        nextItem:
+        for (SyncOperation.SyncItem item : items) {
+            for (FilterRule rule : rules) {
+                if (rule.match(item, operation.getTask())) {
+                    continue nextItem;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     public static FilterRuleList load(Properties prop) {
