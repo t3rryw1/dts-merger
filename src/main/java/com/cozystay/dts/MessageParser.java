@@ -2,6 +2,7 @@ package com.cozystay.dts;
 
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
+import com.cozystay.model.FilterRuleList;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
@@ -11,7 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 public class MessageParser {
-    static SyncTask parseMessage(ClusterMessage message, String source) {
+    static SyncTask parseMessage(ClusterMessage message, String source, FilterRuleList rules) {
         SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
         DataMessage.Record record = message.getRecord();
 
@@ -31,8 +32,12 @@ public class MessageParser {
 
         parseItems(builder, record);
 
-
-        return builder.build();
+        SyncTask newTask = builder.build();
+        if (rules.filter(newTask.getOperations().get(0))) {
+            return newTask;
+        } else {
+            return null;
+        }
     }
 
     private static SyncOperation.OperationType getType(DataMessage.Record.Type opt) {

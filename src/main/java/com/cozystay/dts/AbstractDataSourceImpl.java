@@ -8,9 +8,9 @@ import com.aliyun.drc.clusterclient.RegionContext;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.db.SimpleDBWriterImpl;
 import com.cozystay.db.Writer;
+import com.cozystay.model.FilterRuleList;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
-import com.cozystay.model.SyncTaskBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,36 +23,37 @@ public abstract class AbstractDataSourceImpl implements DataSource {
     private static Logger logger = LoggerFactory.getLogger(AbstractDataSourceImpl.class);
     private final ClusterClient client;
     private final Writer writer;
+    private final FilterRuleList filterRuleList;
 
-
-    public AbstractDataSourceImpl(Properties prop, String prefix) throws Exception {
+    protected AbstractDataSourceImpl(Properties prop, String prefix) throws Exception {
 
 
         String dbAddress, accessKey, accessSecret, subscribeInstanceID, dbUser, dbPassword;
         int dbPort;
         if ((dbAddress = prop.getProperty(prefix + ".dbAddress")) == null) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
         if ((dbUser = prop.getProperty(prefix + ".dbUser")) == null) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
         if ((dbPassword = prop.getProperty(prefix + ".dbPassword")) == null) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
         if ((dbPort = Integer.valueOf(prop.getProperty(prefix + ".dbPort"))) <= 0) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
 
         if ((accessKey = prop.getProperty(prefix + ".accessKey")) == null) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
         if ((accessSecret = prop.getProperty(prefix + ".accessSecret")) == null) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
         if ((subscribeInstanceID = prop.getProperty(prefix + ".subscribeInstanceID")) == null) {
-            throw new ParseException(prefix + ".dbAddress",1);
+            throw new ParseException(prefix + ".dbAddress", 1);
         }
 
+        this.filterRuleList = FilterRuleList.load(prop);
 
         System.out.println("Starting DataSource using config: "
                 + dbAddress + ":" + dbPort
@@ -91,8 +92,8 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                         message.ackAsConsumed();
                         continue;
                     }
-                    SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID);
-                    if(task!=null){
+                    SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID, filterRuleList);
+                    if (task != null) {
                         consumeData(task);
                     }
 
@@ -156,7 +157,6 @@ public abstract class AbstractDataSourceImpl implements DataSource {
         //TODO:  if nothing changes, abandon
         //TODO:  if only timestamp changes, abandon the message
     }
-
 
 
 }

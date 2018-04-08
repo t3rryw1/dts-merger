@@ -8,12 +8,12 @@ import java.util.List;
 
 public class SyncTaskImpl implements SyncTask {
 
-    public final String database;
-    public final String tableName;
+    private final String database;
+    private final String tableName;
 
-    public final String uuid;
+    private final String uuid;
 
-    public final List<SyncOperation> operations;
+    private final List<SyncOperation> operations;
 
 
     SyncTaskImpl(
@@ -31,7 +31,7 @@ public class SyncTaskImpl implements SyncTask {
 
     @Override
     public String getId() {
-        return database + tableName + uuid;
+        return database +":"+ tableName +":"+ uuid;
     }
 
     @Override

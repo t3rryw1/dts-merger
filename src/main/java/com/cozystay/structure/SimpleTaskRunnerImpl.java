@@ -3,13 +3,13 @@ package com.cozystay.structure;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public abstract class SimpleWorkerQueueImpl implements WorkerQueue {
+public abstract class SimpleTaskRunnerImpl implements TaskRunner {
     private final int delay;
     private final int interval;
     private Timer timer;
 
 
-    protected SimpleWorkerQueueImpl(int delay, int interval) {
+    protected SimpleTaskRunnerImpl(int delay, int interval) {
 
         this.delay = delay;
         this.interval = interval;
@@ -21,7 +21,6 @@ public abstract class SimpleWorkerQueueImpl implements WorkerQueue {
             @Override
             public void run() {
                 workOn();
-
             }
         };
 

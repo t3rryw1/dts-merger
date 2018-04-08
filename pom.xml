@@ -30,6 +30,13 @@
             <version>6.0.6</version>
         </dependency>
 
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.12</version>
+                <scope>test</scope>
+            </dependency>
+
     </dependencies>
 
     <build>
@@ -41,7 +48,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.cozystay.Runner</mainClass>
+                            <mainClass>com.cozystay.SyncMain</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

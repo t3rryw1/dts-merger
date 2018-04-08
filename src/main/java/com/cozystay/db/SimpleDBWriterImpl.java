@@ -23,13 +23,13 @@ public class SimpleDBWriterImpl implements Writer {
     }
 
     @Override
-    public void write(SyncOperation task) {
+    public void write(SyncOperation operation) {
         Connection conn = null;
         try {
             conn = DriverManager.getConnection("jdbc:mysql://"
                     + this.address + ":"
                     + this.port + "/" +
-                    task.getTask().getDatabase() + "?" +
+                    operation.getTask().getDatabase() + "?" +
                     "user=" + this.user +
                     "&password=" + this.password);
 

@@ -7,15 +7,15 @@ import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
 import com.cozystay.structure.ProcessedTaskPool;
 import com.cozystay.structure.SimpleProcessedTaskPool;
-import com.cozystay.structure.SimpleWorkerQueueImpl;
-import com.cozystay.structure.WorkerQueue;
+import com.cozystay.structure.SimpleTaskRunnerImpl;
+import com.cozystay.structure.TaskRunner;
 
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-public class Runner {
+public class SyncMain {
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
 
@@ -24,7 +24,7 @@ public class Runner {
         final List<DataSource> dataSources = new ArrayList<>();
         final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
 
-        final WorkerQueue queue = new SimpleWorkerQueueImpl(1, 20) {
+        final TaskRunner queue = new SimpleTaskRunnerImpl(1, 20) {
 
             @Override
             public void addTask(SyncTask newRecord) {
@@ -49,9 +49,6 @@ public class Runner {
                     return;
                 }
 
-                if(toProcess.allOperationsCompleted()) {
-                    pool.remove(toProcess);
-                }
 
                 for (DataSource source :
                         dataSources) {
@@ -69,7 +66,7 @@ public class Runner {
 
 
         Properties prop = new Properties();
-        prop.load(Runner.class.getResourceAsStream("/db-config.properties"));
+        prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
 
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             try {
