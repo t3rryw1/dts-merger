@@ -1,10 +1,9 @@
 package com.cozystay.model;
 
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class FilterRuleList {
-    List<FilterRule> rules;
+     List<FilterRule> rules;
 
     public boolean filter(SyncOperation operation) {
 
@@ -23,17 +22,58 @@ public class FilterRuleList {
     }
 
     public static FilterRuleList load(Properties prop) {
-        return null;
+        Iterator<Map.Entry<Object, Object>> it = prop.entrySet().iterator();
+        FilterRuleList list = new FilterRuleList();
+        list.rules = new LinkedList<>();
+        while (it.hasNext()) {
+            Map.Entry<Object, Object> entry = it.next();
+            if (entry.getKey().toString().startsWith("filter.")) {
+                String value = entry.getValue().toString().trim();
+                list.rules.add(parseString(value));
+            }
+        }
+        return list;
+
     }
 
-    class FilterRule {
+    static  FilterRule parseString(String str) {
+        String[] res = str.split("\\.");
+        if (res.length != 3) {
+            throw new IllegalArgumentException("Wrong filter format, must follow db.table.field format");
+        }
+        return new FilterRule(res[0], res[1], res[2]);
+    }
+
+    static class FilterRule {
         private final String databaseName;
         private final String tableName;
         private final String fieldName;
 
+        public String getDatabaseName() {
+            return databaseName;
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public String getFieldName() {
+            return fieldName;
+        }
+
         FilterRule(String databaseName, String tableName, String fieldName) {
-            this.databaseName = databaseName;
-            this.tableName = tableName;
+            if (databaseName.equals("*")) {
+                this.databaseName = null;
+            } else {
+                this.databaseName = databaseName;
+
+            }
+            if (tableName.equals("*")) {
+                this.tableName = null;
+            } else {
+                this.tableName = tableName;
+            }
+
             this.fieldName = fieldName;
         }
 

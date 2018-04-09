@@ -34,9 +34,9 @@ public class MessageParser {
 
         SyncTask newTask = builder.build();
         if (rules.filter(newTask.getOperations().get(0))) {
-            return newTask;
-        } else {
             return null;
+        } else {
+            return newTask;
         }
     }
 
