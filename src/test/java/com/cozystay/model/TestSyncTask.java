@@ -23,7 +23,7 @@ public class TestSyncTask {
     }
 
     @Test
-    public void testBuilder(){
+    public void testStatus(){
 
     }
     @Test

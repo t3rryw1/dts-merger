@@ -11,9 +11,27 @@ public class TestSyncOperation {
     }
 
     @Test
-    public void testBuilder(){
+    public void testCreation(){
 
     }
+
+
+    @Test
+    public void testSameOperation(){
+
+    }
+
+    @Test
+    public void testStatus(){
+
+    }
+
+    @Test
+    public void testMerge(){
+
+    }
+
+
 
     @Test
     public void testSQL(){

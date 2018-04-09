@@ -13,19 +13,30 @@ public class TestSyncItem {
 
     @Test
     public void testEqual(){
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem("abc","value1","value2");
-        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem("abc","value1","value2");
+        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc","value1","value2");
+        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc","value1","value2");
         Assert.assertEquals(item1,item2);
+        Assert.assertEquals(item1.hashCode(),item2.hashCode());
+
+        SyncOperation.SyncItem<Integer> item3 = new SyncOperation.SyncItem<>("abc",123,456);
+        SyncOperation.SyncItem<Integer> item4 = new SyncOperation.SyncItem<>("abc",123,456);
+        Assert.assertEquals(item3,item4);
+        Assert.assertEquals(item3.hashCode(),item4.hashCode());
+
     }
 
     @Test
     public void testEqualNull(){
         SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc",null,"value2");
-        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem("abc",null,"value2");
+        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc",null,"value2");
         Assert.assertEquals(item1,item2);
+        Assert.assertEquals(item1.hashCode(),item2.hashCode());
         SyncOperation.SyncItem<String> item3 = new SyncOperation.SyncItem<>("abc",null,null);
-        SyncOperation.SyncItem<String> item4 = new SyncOperation.SyncItem("abc",null,null);
+        SyncOperation.SyncItem<String> item4 = new SyncOperation.SyncItem<>("abc",null,null);
+        SyncOperation.SyncItem<String> item5 = new SyncOperation.SyncItem<>("abc","value1","value2");
         Assert.assertEquals(item3,item4);
+        Assert.assertEquals(item3.hashCode(),item4.hashCode());
+        Assert.assertNotEquals(item2,item5);
     }
 
     @After
