@@ -21,57 +21,67 @@ public class SyncMain {
 
     public static void main(String[] args) throws Exception {
         System.out.print("DB Sync runner launched");
+        Properties prop = new Properties();
+        prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
+        Integer threadNumber = Integer.valueOf(prop.getProperty("thread_number","5"));
+
         final List<DataSource> dataSources = new ArrayList<>();
         final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
 
-        final TaskRunner queue = new SimpleTaskRunnerImpl(1, 20) {
+
+        final TaskRunner queue = new SimpleTaskRunnerImpl(1, threadNumber) {
 
             @Override
             public void addTask(SyncTask newRecord) {
-                if(!pool.hasTask(newRecord)){
-                    pool.add(newRecord);
-                    return;
-                }
-                SyncTask currentTask = pool.get(newRecord.getId());
-                SyncTask mergedTask = currentTask .merge(newRecord);
-                if(mergedTask.allOperationsCompleted()){
-                    pool.remove(currentTask);
-                }else{
-                    pool.add(mergedTask);
+                synchronized (pool) {
+                    if (!pool.hasTask(newRecord)) {
+                        pool.add(newRecord);
+                        return;
+                    }
+                    SyncTask currentTask = pool.get(newRecord.getId());
+                    SyncTask mergedTask = currentTask.merge(newRecord);
+                    if (mergedTask.allOperationsCompleted()) {
+                        pool.remove(currentTask);
+                    } else {
+                        pool.add(mergedTask);
+                    }
                 }
 
             }
 
             @Override
             public void workOn() {
-                SyncTask toProcess = pool.poll();
-                if(toProcess==null){
+                SyncTask toProcess;
+                synchronized (pool) {
+                    toProcess = pool.poll();
+                }
+                if (toProcess == null) {
                     return;
                 }
 
 
                 for (DataSource source :
                         dataSources) {
-                    for(SyncOperation operation: toProcess.getOperations()){
-                        if(operation.shouldSendToSource(source.getName())){
+                    for (SyncOperation operation : toProcess.getOperations()) {
+                        if (operation.shouldSendToSource(source.getName())) {
                             source.writeDB(operation);
                             operation.setSourceSend(source.getName());
                         }
                     }
                 }
-                pool.add(toProcess);
+                synchronized (pool) {
+                    pool.add(toProcess);
+                }
             }
         };
         queue.start();
 
 
-        Properties prop = new Properties();
-        prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
 
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             try {
 
-                final DataSource source = new AbstractDataSourceImpl(prop,"db"+i) {
+                final DataSource source = new AbstractDataSourceImpl(prop, "db" + i) {
                     @Override
                     public void consumeData(SyncTask task) {
                         queue.addTask(task);
@@ -87,10 +97,10 @@ public class SyncMain {
 
             } catch (ParseException e) {
                 System.out.println("Could not find DBConsumer" + i);
-                System.out.println("Running with " + (i-1)+" consumers");
+                System.out.println("Running with " + (i - 1) + " consumers");
 
                 break;
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 

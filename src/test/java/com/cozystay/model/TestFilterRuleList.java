@@ -80,7 +80,7 @@ public class TestFilterRuleList {
     }
 
     @Test
-    public void testMatchSyncItem() {
+    public void testMatchSyncItem(){
         FilterRuleList.FilterRule rule1 = FilterRuleList.parseString("galaxy_eadu.calendar.user_notes");
         FilterRuleList.FilterRule rule2 = FilterRuleList.parseString("*.*.updated_at");
         SyncOperation operation = buildOperationWithTwoItems("galaxy_eadu",
@@ -89,8 +89,8 @@ public class TestFilterRuleList {
                 "updated_at");
         SyncOperation.SyncItem item1 = operation.getSyncItems().get(0);
         SyncOperation.SyncItem item2 = operation.getSyncItems().get(1);
-        Assert.assertTrue(rule1.match(item1, operation.getTask()));
-        Assert.assertTrue(rule2.match(item2, operation.getTask()));
+        Assert.assertTrue(rule1.match(item1,operation.getTask()));
+        Assert.assertTrue(rule2.match(item2,operation.getTask()));
 
     }
 

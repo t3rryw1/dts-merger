@@ -1,37 +1,52 @@
 package com.cozystay.structure;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public abstract class SimpleTaskRunnerImpl implements TaskRunner {
     private final int delay;
-    private final int interval;
-    private Timer timer;
+    private final int threadNumber;
+    private boolean stop = false;
+    ThreadPoolExecutor executor;
 
-
-    protected SimpleTaskRunnerImpl(int delay, int interval) {
+    protected SimpleTaskRunnerImpl(int delay, int threadNumber) {
 
         this.delay = delay;
-        this.interval = interval;
+        this.threadNumber = threadNumber;
+        BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
+        executor = new ThreadPoolExecutor(threadNumber,
+                100,
+                10000,
+                TimeUnit.DAYS,
+                queue);
     }
 
     public void start() {
-        TimerTask timerTask = new TimerTask() {
-
-            @Override
-            public void run() {
-                workOn();
+        try {
+            Thread.sleep(this.delay);
+            while (!stop) {
+                Thread.sleep(100);
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        workOn();
+                    }
+                });
             }
-        };
 
-        timer = new Timer("MyTimer");//create a new Timer
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-        timer.scheduleAtFixedRate(timerTask, this.delay, this.interval);//this line starts the timer at the same time its executed
     }
 
 
     public void stop() {
-        timer.cancel();
+        stop = true;
+        executor.shutdown();
+
     }
 
 }
