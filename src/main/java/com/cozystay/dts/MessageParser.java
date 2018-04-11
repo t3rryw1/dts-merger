@@ -12,10 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class MessageParser {
     private static final SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -23,7 +20,7 @@ public class MessageParser {
     static SyncTask parseMessage(ClusterMessage message,
                                  String source,
                                  SchemaRuleCollection rules)
-            throws NoSuchFieldException, UnsupportedEncodingException {
+            throws  UnsupportedEncodingException {
         SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
         DataMessage.Record record = message.getRecord();
 
@@ -56,7 +53,7 @@ public class MessageParser {
     private static void parseUuid(SyncTaskBuilder builder,
                                   DataMessage.Record record,
                                   SchemaRuleCollection rules)
-            throws NoSuchFieldException, UnsupportedEncodingException {
+            throws UnsupportedEncodingException {
 
         // read or generate uuid according to record and rules and set it to builder.
         List<DataMessage.Record.Field> fields = record.getFieldList();
@@ -68,7 +65,7 @@ public class MessageParser {
             idFields = rules.getPrimaryKeys(record.getDbname(), record.getTablename());
         }
         if (idFields == null) {
-            throw new NoSuchFieldException(
+            throw new IllegalArgumentException(
                     String.format("schema index configuration error, need config for db: %s, table: %s",
                             record.getDbname(),
                             record.getTablename()));
