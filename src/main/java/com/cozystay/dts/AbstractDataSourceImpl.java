@@ -67,7 +67,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
         context.setAccessKey(accessKey);
         context.setSecret(accessSecret);
         this.subscribeInstanceID = subscribeInstanceID;
-        /* 创建集群消费client */
+
         client = new DefaultClusterClient(context);
 
     }
@@ -98,7 +98,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                         if (task != null) {
                             consumeData(task);
                         }
-                    } catch (NoSuchFieldException | UnsupportedEncodingException e) {
+                    } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     } finally {
                         System.out.printf("ACK message: %s/%s/%s%n",
