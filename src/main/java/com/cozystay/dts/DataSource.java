@@ -4,7 +4,7 @@ import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 
-//load from .properties, read Record from DTS and pass it to its callback
+//loadRules from .properties, read Record from DTS and pass it to its callback
 public interface DataSource {
 
     void consumeData(SyncTask task);

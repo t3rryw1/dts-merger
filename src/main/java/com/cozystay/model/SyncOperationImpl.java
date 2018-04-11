@@ -149,10 +149,10 @@ public class SyncOperationImpl implements SyncOperation {
         OperationType operationType = toMergeOp.getOperationType();
         List<SyncItem> selfItems = this.getSyncItems();
         List<SyncItem> toMergeItems = toMergeOp.getSyncItems();
-        List<SyncItem> mergedItems = new ArrayList<>();
-        Collections.copy(mergedItems,toMergeItems);
+        List<SyncItem> mergedItems = new ArrayList<>(selfItems);
+//        Collections.copy(mergedItems,toMergeItems);
         nextToMergeItem:
-        for(SyncItem toMergeItem : toMergeOp.getSyncItems()){
+        for(SyncItem toMergeItem : toMergeItems){
             for(SyncItem selfItem : selfItems){
                 if(selfItem.fieldName.equals(toMergeItem.fieldName)){
                     //found item with same field, check timestamp,

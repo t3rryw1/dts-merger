@@ -1,5 +1,7 @@
 package com.cozystay.structure;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -8,8 +10,8 @@ import java.util.concurrent.TimeUnit;
 public abstract class SimpleTaskRunnerImpl implements TaskRunner {
     private final int delay;
     private final int threadNumber;
-    private boolean stop = false;
     ThreadPoolExecutor executor;
+    private Timer timer;
 
     protected SimpleTaskRunnerImpl(int delay, int threadNumber) {
 
@@ -26,15 +28,20 @@ public abstract class SimpleTaskRunnerImpl implements TaskRunner {
     public void start() {
         try {
             Thread.sleep(this.delay);
-            while (!stop) {
-                Thread.sleep(100);
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        workOn();
-                    }
-                });
-            }
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    executor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            workOn();
+                        }
+                    });
+
+                }
+            };
+            timer = new Timer(true);
+            timer.scheduleAtFixedRate(task, 0, 10);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -44,8 +51,8 @@ public abstract class SimpleTaskRunnerImpl implements TaskRunner {
 
 
     public void stop() {
-        stop = true;
         executor.shutdown();
+        timer.cancel();
 
     }
 
