@@ -8,7 +8,7 @@ import com.aliyun.drc.clusterclient.RegionContext;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.db.SimpleDBWriterImpl;
 import com.cozystay.db.Writer;
-import com.cozystay.model.FilterRuleList;
+import com.cozystay.model.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import org.slf4j.Logger;
@@ -23,7 +23,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
     private static Logger logger = LoggerFactory.getLogger(AbstractDataSourceImpl.class);
     private final ClusterClient client;
     private final Writer writer;
-    private final FilterRuleList filterRuleList;
+    private final SchemaRuleCollection schemaRuleCollection;
 
     protected AbstractDataSourceImpl(Properties prop, String prefix) throws Exception {
 
@@ -53,7 +53,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             throw new ParseException(prefix + ".dbAddress", 1);
         }
 
-        this.filterRuleList = FilterRuleList.load(prop);
+        this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
 
         System.out.println("Starting DataSource using config: "
                 + dbAddress + ":" + dbPort
@@ -92,7 +92,15 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                         message.ackAsConsumed();
                         continue;
                     }
-                    SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID, filterRuleList);
+                    if (message.getRecord().getTablename().equals("translations")) {
+                        System.out.println("getUniqueColNames"+message.getRecord().getUniqueColNames());
+                        System.out.println("getPrimaryKeys"+message.getRecord().getPrimaryKeys());
+                        System.out.println("getFieldList"+message.getRecord().getFieldList());
+
+                    }
+
+//                    System.out.println(message.getRecord().getUniqueColNames());
+                    SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID, schemaRuleCollection);
                     if (task != null) {
                         consumeData(task);
                     }
@@ -154,8 +162,6 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                 //if not a db commit message abandon
                 return true;
         }
-        //TODO:  if nothing changes, abandon
-        //TODO:  if only timestamp changes, abandon the message
     }
 
 

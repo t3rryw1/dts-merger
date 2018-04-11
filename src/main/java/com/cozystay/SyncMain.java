@@ -29,7 +29,7 @@ public class SyncMain {
         final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
 
 
-        final TaskRunner queue = new SimpleTaskRunnerImpl(1, threadNumber) {
+        final TaskRunner runner = new SimpleTaskRunnerImpl(1, threadNumber) {
 
             @Override
             public void addTask(SyncTask newRecord) {
@@ -74,7 +74,7 @@ public class SyncMain {
                 }
             }
         };
-        queue.start();
+        runner.start();
 
 
 
@@ -84,7 +84,7 @@ public class SyncMain {
                 final DataSource source = new AbstractDataSourceImpl(prop, "db" + i) {
                     @Override
                     public void consumeData(SyncTask task) {
-                        queue.addTask(task);
+                        runner.addTask(task);
 
                     }
 
