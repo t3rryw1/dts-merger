@@ -60,7 +60,6 @@ public class TestSchemaRuleCollection {
         Assert.assertEquals(ruleList.filterRules.get(0).getFieldName(), "created_at");
         Assert.assertEquals(ruleList.filterRules.get(1).getFieldName(), "user_notes");
         Assert.assertEquals(ruleList.filterRules.get(2).getFieldName(), "updated_at");
-
     }
 
     private SyncOperation buildOperationWithTwoItems(String dbName, String tableName, String fieldName1, String fieldName2) {
@@ -124,6 +123,6 @@ public class TestSchemaRuleCollection {
 
     @After
     public void tearDown() {
-//        System.out.println("tear down " + this.getClass().getName());
+        System.out.println("tear down " + this.getClass().getName());
     }
 }
