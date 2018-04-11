@@ -1,8 +1,6 @@
 package com.cozystay.db;
 
 import com.cozystay.model.SyncOperation;
-import com.cozystay.model.SyncTask;
-import com.cozystay.model.SyncTaskImpl;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -26,12 +24,13 @@ public class SimpleDBWriterImpl implements Writer {
     public void write(SyncOperation operation) {
         Connection conn = null;
         try {
-            conn = DriverManager.getConnection("jdbc:mysql://"
-                    + this.address + ":"
-                    + this.port + "/" +
-                    operation.getTask().getDatabase() + "?" +
-                    "user=" + this.user +
-                    "&password=" + this.password);
+            conn = DriverManager.getConnection(
+                    String.format("jdbc:mysql://%s:%d/%s?user=%s&password=%s",
+                            this.address,
+                            this.port,
+                            operation.getTask().getDatabase(),
+                            this.user,
+                            this.password));
 
             //TODO: sql to write data
 
