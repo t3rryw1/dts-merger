@@ -23,7 +23,7 @@ public class SyncMain {
         System.out.print("DB Sync runner launched");
         Properties prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
-        Integer threadNumber = Integer.valueOf(prop.getProperty("thread_number","5"));
+        Integer threadNumber = Integer.valueOf(prop.getProperty("thread_number", "5"));
 
         final List<DataSource> dataSources = new ArrayList<>();
         final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
@@ -77,7 +77,6 @@ public class SyncMain {
         runner.start();
 
 
-
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             try {
 
@@ -96,8 +95,7 @@ public class SyncMain {
 
 
             } catch (ParseException e) {
-                System.out.println("Could not find DBConsumer" + i);
-                System.out.println("Running with " + (i - 1) + " consumers");
+                System.out.printf("Could not find DBConsumer%d, Running with %d consumers%n", i, i - 1);
 
                 break;
             } catch (Exception e) {

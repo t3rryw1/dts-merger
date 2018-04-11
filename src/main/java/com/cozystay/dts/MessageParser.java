@@ -6,15 +6,22 @@ import com.cozystay.model.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 public class MessageParser {
-    static SyncTask parseMessage(ClusterMessage message, String source, SchemaRuleCollection rules) {
+    static SyncTask parseMessage(ClusterMessage message,
+                                 String source,
+                                 SchemaRuleCollection rules)
+            throws NoSuchFieldException, UnsupportedEncodingException {
         SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
         DataMessage.Record record = message.getRecord();
 
@@ -31,7 +38,7 @@ public class MessageParser {
 
         builder.setSource(source);
 
-        parseUuid(builder,record,rules);
+        parseUuid(builder, record, rules);
 
         parseItems(builder, record);
 
@@ -43,8 +50,36 @@ public class MessageParser {
         }
     }
 
-    private static void parseUuid(SyncTaskBuilder builder, DataMessage.Record record, SchemaRuleCollection rules) {
-        //TODO: read or generate uuid according to record and rules and set it to builder.
+
+    private static void parseUuid(SyncTaskBuilder builder,
+                                  DataMessage.Record record,
+                                  SchemaRuleCollection rules)
+            throws NoSuchFieldException, UnsupportedEncodingException {
+
+        // read or generate uuid according to record and rules and set it to builder.
+        List<DataMessage.Record.Field> fields = record.getFieldList();
+        List<String> uuidStrings = new ArrayList<>();
+        List<String> idFields;
+        if (record.getPrimaryKeys() != null) {
+            idFields = Arrays.asList(record.getPrimaryKeys().split(","));
+        } else {
+            idFields = rules.getPrimaryKeys(record.getDbname(), record.getTablename());
+        }
+        if (idFields == null) {
+            throw new NoSuchFieldException(
+                    String.format("schema index configuration error, need config for db: %s, table: %s",
+                            record.getDbname(),
+                            record.getTablename()));
+        }
+        for (DataMessage.Record.Field field : fields) {
+            if (idFields.contains(field.getFieldname())) {
+                uuidStrings.add(field.getValue().toString(field.getEncoding()));
+            }
+        }
+        String uuid = StringUtils.join(uuidStrings.toArray(), ':');
+        uuid = DigestUtils.shaHex(uuid);
+
+        builder.setUuid(uuid);
     }
 
     private static SyncOperation.OperationType getType(DataMessage.Record.Type opt) {
@@ -74,13 +109,6 @@ public class MessageParser {
         }
         List<DataMessage.Record.Field> fields = record.getFieldList();
         for (int i = 0; i < fields.size(); i += step) {
-            DataMessage.Record.Field field = fields.get(i);
-//            if (field.getFieldname().equals(record.getPrimaryKeys())) {
-////                System.out.println(field.getFieldname()+" "+field.getValue().toString());
-//                if(field.getValue()!=null){
-//                    builder.setUuid(field.getValue().toString());
-//                }
-//            }
 
             SyncOperation.SyncItem item;
             try {
@@ -95,7 +123,9 @@ public class MessageParser {
         }
     }
 
-    private static SyncOperation.SyncItem parseItem(List<DataMessage.Record.Field> fields, int start, DataMessage.Record.Type type)
+    private static SyncOperation.SyncItem parseItem(List<DataMessage.Record.Field> fields,
+                                                    int start,
+                                                    DataMessage.Record.Type type)
             throws UnsupportedEncodingException {
         DataMessage.Record.Field field = fields.get(start);
         String fieldName = field.getFieldname();
@@ -130,7 +160,7 @@ public class MessageParser {
                 }
                 try {
                     return buildItem(field, fieldName, value, newValue);
-                } catch (Exception e) {
+                } catch (ParseException e) {
                     return null;
                 }
             case DELETE:
@@ -149,7 +179,8 @@ public class MessageParser {
     private static SyncOperation.SyncItem buildItem(DataMessage.Record.Field field,
                                                     String fieldName,
                                                     String originValue,
-                                                    String newValue) throws ParseException {
+                                                    String newValue)
+            throws ParseException {
         switch (field.getType()) {
             case STRING:
             case JSON:
@@ -177,17 +208,31 @@ public class MessageParser {
                 return new SyncOperation.SyncItem<>(fieldName,
                         Date.parse(originValue),
                         Date.parse(newValue));
+            case NULL:
+                break;
             case TIMESTAMP:
                 SimpleDateFormat sdfmt2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 return new SyncOperation.SyncItem<>(fieldName,
                         sdfmt2.parse(originValue),
                         sdfmt2.parse(newValue));
+            case YEAR:
+                break;
             case BIT:
                 return new SyncOperation.SyncItem<>(fieldName,
                         Boolean.getBoolean(originValue),
                         Boolean.getBoolean(newValue));
+            case SET:
+                break;
+            case BLOB:
+                break;
+            case GEOMETRY:
+                break;
+            case UNKOWN:
+                break;
             default:
                 return null;
         }
+        return null;
     }
+
 }

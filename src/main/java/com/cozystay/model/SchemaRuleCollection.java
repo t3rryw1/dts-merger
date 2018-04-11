@@ -1,10 +1,16 @@
 package com.cozystay.model;
 
+import java.text.MessageFormat;
 import java.util.*;
 
 public class SchemaRuleCollection {
-    List<FilterRule> filterRules;
-    List<IndexRule> indexRules;
+    private List<FilterRule> filterRules;
+    private List<IndexRule> indexRules;
+
+    private SchemaRuleCollection() {
+        filterRules = new ArrayList<>();
+        indexRules = new ArrayList<>();
+    }
 
     public boolean filter(SyncOperation operation) {
 
@@ -25,7 +31,6 @@ public class SchemaRuleCollection {
     public static SchemaRuleCollection loadRules(Properties prop) {
         Iterator<Map.Entry<Object, Object>> it = prop.entrySet().iterator();
         SchemaRuleCollection list = new SchemaRuleCollection();
-        list.filterRules = new LinkedList<>();
         while (it.hasNext()) {
             Map.Entry<Object, Object> entry = it.next();
             if (entry.getKey().toString().startsWith("schema.filter.")) {
@@ -42,18 +47,35 @@ public class SchemaRuleCollection {
     }
 
     private static IndexRule parseIndices(String value) {
-        //TODO: impl IndexRule creations
-        return null;
+        String[] res = value.split("\\.");
+        if (res.length != 3) {
+            throw new IllegalArgumentException(MessageFormat.format("Wrong filter format, {0} not following db.table.field format", value));
+        }
+        String[] fields = res[2].split(",");
+        List<String> indicesFields = Arrays.asList(fields);
+        return new IndexRule(res[0], res[1], indicesFields);
     }
 
 
     static FilterRule parseFilter(String str) {
         String[] res = str.split("\\.");
         if (res.length != 3) {
-            throw new IllegalArgumentException("Wrong filter format, must follow db.table.field format");
+            throw new IllegalArgumentException(MessageFormat.format("Wrong filter format, {0} not following db.table.field format", str));
         }
         return new FilterRule(res[0], res[1], res[2]);
     }
+
+    public List<String> getPrimaryKeys(String dbName, String tableName) {
+
+        for (IndexRule rule : indexRules) {
+            if (rule.isTargetTable(tableName, dbName)) {
+                return rule.getIndexFields();
+            }
+        }
+        return null;
+
+    }
+
 
     static class FilterRule {
         private final String databaseName;
@@ -100,24 +122,16 @@ public class SchemaRuleCollection {
 
     }
 
-    private class IndexRule {
+    private static class IndexRule {
         private final String databaseName;
         private final String tableName;
         private final List<String> indexFields;
 
-        public String getDatabaseName() {
-            return databaseName;
-        }
-
-        public String getTableName() {
-            return tableName;
-        }
-
-        public List<String> getIndexFields() {
+        List<String> getIndexFields() {
             return indexFields;
         }
 
-        private IndexRule(String databaseName, String tableName, List<String> indexFields) {
+        IndexRule(String databaseName, String tableName, List<String> indexFields) {
             if (databaseName.equals("*")) {
                 this.databaseName = null;
             } else {
@@ -131,7 +145,7 @@ public class SchemaRuleCollection {
             this.indexFields = indexFields;
         }
 
-        public boolean isTargetTable(String tableName, String dbName) {
+        boolean isTargetTable(String tableName, String dbName) {
             if (this.databaseName == null) {
                 return this.tableName.equals(tableName);
             }
