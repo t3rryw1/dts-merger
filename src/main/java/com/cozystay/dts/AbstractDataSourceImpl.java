@@ -14,6 +14,7 @@ import com.cozystay.model.SyncTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Properties;
@@ -55,11 +56,11 @@ public abstract class AbstractDataSourceImpl implements DataSource {
 
         this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
 
-        System.out.println("Starting DataSource using config: "
-                + dbAddress + ":" + dbPort
-                + accessKey + " "
-                + accessSecret + " "
-                + subscribeInstanceID);
+        System.out.printf("Start DataSource using config: %s:%d, access key: %s, instance id: %s",
+                dbAddress,
+                dbPort,
+                accessKey,
+                subscribeInstanceID);
         writer = new SimpleDBWriterImpl(dbAddress, dbPort, dbUser, dbPassword);
         RegionContext context = new RegionContext();
         context.setUsePublicIp(true);
@@ -88,25 +89,26 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             @Override
             public void notify(List<ClusterMessage> messages) {
                 for (ClusterMessage message : messages) {
-                    if (shouldFilterMessage(message)) {
+
+                    try {
+                        if (shouldFilterMessage(message)) {
+                            continue;
+                        }
+                        SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID, schemaRuleCollection);
+                        if (task != null) {
+                            consumeData(task);
+                        }
+                    } catch (NoSuchFieldException | UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    } finally {
+                        System.out.printf("ACK message: %s/%s/%s",
+                                message.getRecord().getDbname(),
+                                message.getRecord().getTablename(),
+                                message.getRecord().getId());
                         message.ackAsConsumed();
-                        continue;
-                    }
-                    if (message.getRecord().getTablename().equals("translations")) {
-                        System.out.println("getUniqueColNames"+message.getRecord().getUniqueColNames());
-                        System.out.println("getPrimaryKeys"+message.getRecord().getPrimaryKeys());
-                        System.out.println("getFieldList"+message.getRecord().getFieldList());
 
                     }
 
-//                    System.out.println(message.getRecord().getUniqueColNames());
-                    SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID, schemaRuleCollection);
-                    if (task != null) {
-                        consumeData(task);
-                    }
-
-
-                    message.ackAsConsumed();
 
                 }
             }
@@ -151,7 +153,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             return true;
         }
 
-        System.out.println("Record Op type:" + record.getOpt().toString());
+        System.out.printf("Record Op type: %s", record.getOpt().toString());
         switch (record.getOpt()) {
             case INSERT: // 数据插入
             case UPDATE:// 数据更新

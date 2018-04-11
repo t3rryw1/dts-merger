@@ -6,8 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SimpleProcessedTaskPool implements ProcessedTaskPool {
-    ConcurrentHashMap<String, SyncTask> taskMap;
-    ConcurrentLinkedQueue<String> idQueue;
+    private ConcurrentHashMap<String, SyncTask> taskMap;
+    private ConcurrentLinkedQueue<String> idQueue;
 
 
     public SimpleProcessedTaskPool() {

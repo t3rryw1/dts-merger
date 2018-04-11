@@ -27,7 +27,7 @@ public class SyncOperationImpl implements SyncOperation {
         }
         if(source!=null){
             if (!syncStatusMap.containsKey(source)) {
-                throw new IllegalArgumentException("Source " + source + " is not in Source list");
+                throw new IllegalArgumentException(String.format("Source %s is not in Source list", source));
             }
             syncStatusMap.put(source, SyncStatus.COMPLETED);
         }
