@@ -35,28 +35,28 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             throw new ParseException(prefix + ".dbAddress", 1);
         }
         if ((dbUser = prop.getProperty(prefix + ".dbUser")) == null) {
-            throw new ParseException(prefix + ".dbAddress", 1);
+            throw new ParseException(prefix + ".dbUser", 2);
         }
         if ((dbPassword = prop.getProperty(prefix + ".dbPassword")) == null) {
-            throw new ParseException(prefix + ".dbAddress", 1);
+            throw new ParseException(prefix + ".dbPassword", 3);
         }
         if ((dbPort = Integer.valueOf(prop.getProperty(prefix + ".dbPort"))) <= 0) {
-            throw new ParseException(prefix + ".dbAddress", 1);
+            throw new ParseException(prefix + ".dbPort", 4);
         }
 
         if ((accessKey = prop.getProperty(prefix + ".accessKey")) == null) {
-            throw new ParseException(prefix + ".dbAddress", 1);
+            throw new ParseException(prefix + ".accessKey", 5);
         }
         if ((accessSecret = prop.getProperty(prefix + ".accessSecret")) == null) {
-            throw new ParseException(prefix + ".dbAddress", 1);
+            throw new ParseException(prefix + ".accessSecret", 6);
         }
         if ((subscribeInstanceID = prop.getProperty(prefix + ".subscribeInstanceID")) == null) {
-            throw new ParseException(prefix + ".dbAddress", 1);
+            throw new ParseException(prefix + ".subscribeInstanceID", 7);
         }
 
         this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
 
-        System.out.printf("Start DataSource using config: %s:%d, access key: %s, instance id: %s",
+        System.out.printf("Start DataSource using config: %s:%d, access key: %s, instance id: %s%n",
                 dbAddress,
                 dbPort,
                 accessKey,
@@ -101,7 +101,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                     } catch (NoSuchFieldException | UnsupportedEncodingException e) {
                         e.printStackTrace();
                     } finally {
-                        System.out.printf("ACK message: %s/%s/%s",
+                        System.out.printf("ACK message: %s/%s/%s%n",
                                 message.getRecord().getDbname(),
                                 message.getRecord().getTablename(),
                                 message.getRecord().getId());
@@ -153,7 +153,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
             return true;
         }
 
-        System.out.printf("Record Op type: %s", record.getOpt().toString());
+        System.out.printf("Record Op type: %s%n", record.getOpt().toString());
         switch (record.getOpt()) {
             case INSERT: // 数据插入
             case UPDATE:// 数据更新

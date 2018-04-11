@@ -18,6 +18,8 @@ import java.util.Date;
 import java.util.List;
 
 public class MessageParser {
+    private static final SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     static SyncTask parseMessage(ClusterMessage message,
                                  String source,
                                  SchemaRuleCollection rules)
@@ -211,10 +213,9 @@ public class MessageParser {
             case NULL:
                 break;
             case TIMESTAMP:
-                SimpleDateFormat sdfmt2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                 return new SyncOperation.SyncItem<>(fieldName,
-                        sdfmt2.parse(originValue),
-                        sdfmt2.parse(newValue));
+                        defaultDateFormat.parse(originValue),
+                        defaultDateFormat.parse(newValue));
             case YEAR:
                 break;
             case BIT:
@@ -229,8 +230,6 @@ public class MessageParser {
                 break;
             case UNKOWN:
                 break;
-            default:
-                return null;
         }
         return null;
     }
