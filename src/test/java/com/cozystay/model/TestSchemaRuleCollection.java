@@ -123,6 +123,6 @@ public class TestSchemaRuleCollection {
 
     @After
     public void tearDown() {
-        System.out.println("tear down " + this.getClass().getName());
+//        System.out.println("tear down " + this.getClass().getName());
     }
 }
