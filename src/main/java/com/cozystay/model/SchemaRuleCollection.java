@@ -4,7 +4,7 @@ import java.text.MessageFormat;
 import java.util.*;
 
 public class SchemaRuleCollection {
-    private List<FilterRule> filterRules;
+    List<FilterRule> filterRules;
     private List<IndexRule> indexRules;
 
     private SchemaRuleCollection() {
