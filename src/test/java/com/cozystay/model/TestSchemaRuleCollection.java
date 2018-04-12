@@ -63,8 +63,8 @@ public class TestSchemaRuleCollection {
     }
 
     private SyncOperation buildOperationWithTwoItems(String dbName, String tableName, String fieldName1, String fieldName2) {
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>(fieldName1, "val1", "val2");
-        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>(fieldName2, "val1", "val2");
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>(fieldName1, "val1", "val2",true);
+        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>(fieldName2, "val1", "val2",true);
         List<SyncOperation.SyncItem> items = new ArrayList<>(Arrays.asList(item1, item2));
         SyncTask task = new SyncTaskImpl("id-123", dbName, tableName);
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));

@@ -19,6 +19,6 @@
   - cd target && java -jar demo-1.0-SNAPSHOT-jar-with-dependencies.jar 
 
 ## TODO
-+ 使用log4j进行格式化的日志输出
-+ 处理SyncOperation里primary keys
++ ~~处理SyncOperation里primary keys~~
 + 输出SQL
++ 使用log4j进行格式化的日志输出

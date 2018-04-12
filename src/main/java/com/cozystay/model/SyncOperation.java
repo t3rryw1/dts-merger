@@ -57,11 +57,13 @@ public interface SyncOperation {
         public final String fieldName;
         public final T originValue;
         public final T currentValue;
+        public final boolean isIndex;
 
-        public SyncItem(String fieldName, T originValue, T currentValue) {
+        public SyncItem(String fieldName, T originValue, T currentValue, boolean isIndex) {
             this.fieldName = fieldName;
             this.originValue = originValue;
             this.currentValue = currentValue;
+            this.isIndex = isIndex;
         }
 
 
@@ -71,9 +73,10 @@ public interface SyncOperation {
                 return false;
             SyncItem item = (SyncItem) obj;
             return new EqualsBuilder()
-                    .append(fieldName,item.fieldName)
-                    .append(currentValue,item.currentValue)
-                    .append(originValue,item.originValue)
+                    .append(fieldName, item.fieldName)
+                    .append(currentValue, item.currentValue)
+                    .append(originValue, item.originValue)
+                    .append(isIndex, item.isIndex)
                     .isEquals();
         }
 
@@ -83,6 +86,7 @@ public interface SyncOperation {
                     .append(fieldName)
                     .append(currentValue)
                     .append(originValue)
+                    .append(isIndex)
                     .toHashCode();
         }
     }
