@@ -9,15 +9,16 @@ import static org.junit.Assert.assertEquals;
 public class TestSyncTaskBuilder {
     @Before
     public void setUp(){
-//        System.out.println("set up " + this.getClass().getName());
+        System.out.println("set up " + this.getClass().getName());
     }
     @Test
     public void testBuilder(){
+        SyncTaskBuilder taskuilder = SyncTaskBuilder.getInstance();
     }
 
 
     @After
     public void tearDown(){
-//        System.out.println("tear down " + this.getClass().getName());
+        System.out.println("tear down " + this.getClass().getName());
     }
 }
