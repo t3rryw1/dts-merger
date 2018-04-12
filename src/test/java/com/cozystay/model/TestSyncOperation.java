@@ -14,7 +14,7 @@ public class TestSyncOperation {
     @Test
     public void testCreation(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("user_notes", "val1", "val2");
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("user_notes", "val1", "val2",true);
 
         SyncOperation operation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
@@ -33,8 +33,8 @@ public class TestSyncOperation {
     @Test
     public void testSameOperation(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb");
-        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "xx");
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
+        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "xx",true);
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));
 
         SyncOperation operation1 = new SyncOperationImpl( task,
@@ -65,7 +65,7 @@ public class TestSyncOperation {
     @Test
     public void testStatus(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb");
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
 
         SyncOperation operation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
@@ -81,7 +81,7 @@ public class TestSyncOperation {
     @Test
     public void testMerge(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb");
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
 
         SyncOperation operation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,

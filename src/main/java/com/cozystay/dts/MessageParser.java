@@ -6,13 +6,13 @@ import com.cozystay.model.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 public class MessageParser {
     private static final SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -20,7 +20,7 @@ public class MessageParser {
     static SyncTask parseMessage(ClusterMessage message,
                                  String source,
                                  SchemaRuleCollection rules)
-            throws  UnsupportedEncodingException {
+            throws UnsupportedEncodingException {
         SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
         DataMessage.Record record = message.getRecord();
 
@@ -57,12 +57,13 @@ public class MessageParser {
 
         // read or generate uuid according to record and rules and set it to builder.
         List<DataMessage.Record.Field> fields = record.getFieldList();
-        List<String> uuidStrings = new ArrayList<>();
+        UuidBuilder uuidBuilder = new UuidBuilder();
         List<String> idFields;
         if (record.getPrimaryKeys() != null) {
             idFields = Arrays.asList(record.getPrimaryKeys().split(","));
         } else {
             idFields = rules.getPrimaryKeys(record.getDbname(), record.getTablename());
+
         }
         if (idFields == null) {
             throw new IllegalArgumentException(
@@ -72,13 +73,14 @@ public class MessageParser {
         }
         for (DataMessage.Record.Field field : fields) {
             if (idFields.contains(field.getFieldname())) {
-                uuidStrings.add(field.getValue().toString(field.getEncoding()));
+                field.setPrimary(true);
+                uuidBuilder.addValue(field.getValue().toString(field.getEncoding()));
+            } else {
+                field.setPrimary(false);
             }
         }
-        String uuid = StringUtils.join(uuidStrings.toArray(), ':');
-        uuid = DigestUtils.shaHex(uuid);
 
-        builder.setUuid(uuid);
+        builder.setUuid(uuidBuilder.build());
     }
 
     private static SyncOperation.OperationType getType(DataMessage.Record.Type opt) {
@@ -154,7 +156,7 @@ public class MessageParser {
                 if (newValue == null && value == null) {
                     return null;
                 }
-                if (newValue != null && newValue.equals(value)) {
+                if (newValue != null && newValue.equals(value) && !newField.isPrimary()) {
                     return null;
                 }
                 try {
@@ -186,7 +188,8 @@ public class MessageParser {
             case ENUM:
                 return new SyncOperation.SyncItem<>(fieldName,
                         originValue,
-                        newValue);
+                        newValue,
+                        field.isPrimary());
             case INT8:
             case INT16:
             case INT24:
@@ -195,30 +198,35 @@ public class MessageParser {
             case DECIMAL:
                 return new SyncOperation.SyncItem<>(fieldName,
                         Integer.valueOf(originValue),
-                        Integer.valueOf(newValue));
+                        Integer.valueOf(newValue),
+                        field.isPrimary());
             case FLOAT:
             case DOUBLE:
                 return new SyncOperation.SyncItem<>(fieldName,
                         Double.valueOf(originValue),
-                        Double.valueOf(newValue));
+                        Double.valueOf(newValue),
+                        field.isPrimary());
             case DATE:
             case DATETIME:
             case TIME:
                 return new SyncOperation.SyncItem<>(fieldName,
                         Date.parse(originValue),
-                        Date.parse(newValue));
+                        Date.parse(newValue),
+                        field.isPrimary());
             case NULL:
                 break;
             case TIMESTAMP:
                 return new SyncOperation.SyncItem<>(fieldName,
                         defaultDateFormat.parse(originValue),
-                        defaultDateFormat.parse(newValue));
+                        defaultDateFormat.parse(newValue),
+                        field.isPrimary());
             case YEAR:
                 break;
             case BIT:
                 return new SyncOperation.SyncItem<>(fieldName,
                         Boolean.getBoolean(originValue),
-                        Boolean.getBoolean(newValue));
+                        Boolean.getBoolean(newValue),
+                        field.isPrimary());
             case SET:
                 break;
             case BLOB:
