@@ -20,5 +20,6 @@
 
 ## TODO
 + ~~处理SyncOperation里primary keys~~
-+ 输出SQL
++ ~~输出SQL~~
+    * 测试多种情况下的 SQL 输出是否正确
 + 使用log4j进行格式化的日志输出

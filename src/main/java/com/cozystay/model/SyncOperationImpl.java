@@ -1,5 +1,6 @@
 package com.cozystay.model;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
 import java.util.*;
@@ -12,11 +13,11 @@ public class SyncOperationImpl implements SyncOperation {
     private final Date operationTime;
 
     SyncOperationImpl(SyncTask task,
-                             OperationType operationType,
-                             List<SyncItem> syncItems,
-                             String source,
-                             List<String> sourceList,
-                             Date operationTime) {
+                      OperationType operationType,
+                      List<SyncItem> syncItems,
+                      String source,
+                      List<String> sourceList,
+                      Date operationTime) {
         this.task = task;
         this.operationType = operationType;
         this.syncItems = syncItems;
@@ -25,7 +26,7 @@ public class SyncOperationImpl implements SyncOperation {
         for (String sourceName : sourceList) {
             syncStatusMap.put(sourceName, SyncStatus.INIT);
         }
-        if(source!=null){
+        if (source != null) {
             if (!syncStatusMap.containsKey(source)) {
                 throw new IllegalArgumentException(String.format("Source %s is not in Source list", source));
             }
@@ -60,8 +61,62 @@ public class SyncOperationImpl implements SyncOperation {
 
     @Override
     public String buildSql() {
-        //TODO: impl
+        //impl
+        switch (getOperationType()) {
+            case DELETE:
+                String conditionString = getConditionString();
+                return String.format("DELETE FROM %s WHERE %s;", getTask().getTable(), conditionString);
+            case CREATE:
+                List<String> keys = new ArrayList<>(), values = new ArrayList<>();
+                for (SyncItem item : getSyncItems()) {
+                    keys.add(item.fieldName);
+                    if (item.currentValue instanceof Integer || item.currentValue instanceof Double) {
+                        values.add(item.currentValue.toString());
+                    } else {
+                        values.add("'" + item.currentValue.toString() + "'");
+                    }
+                }
+                String keyString = StringUtils.join(keys, ", ");
+                String valueString = StringUtils.join(values, ", ");
+                return String.format("INSERT INTO %s (%s) VALUES (%s);", getTask().getTable(), keyString, valueString);
+            case UPDATE:
+            case REPLACE:
+                conditionString = getConditionString();
+                List<String> operations = new ArrayList<>();
+                for (SyncItem item : getSyncItems()) {
+                    if (item.currentValue.equals(item.originValue)) {
+                        continue;
+                    }
+
+                    if (item.originValue instanceof Integer || item.originValue instanceof Double) {
+                        operations.add(String.format(" %s = %s ", item.fieldName, item.originValue.toString()));
+                    } else {
+                        operations.add(String.format(" %s = '%s' ", item.fieldName, item.originValue.toString()));
+
+                    }
+
+                }
+                String operationString = StringUtils.join(operations, ", ");
+
+                return String.format("UPDATE %s SET (%s) WHERE %s;", getTask().getTable(), operationString, conditionString);
+
+        }
         return null;
+    }
+
+    private String getConditionString() {
+        List<String> conditions = new ArrayList<>();
+        for (SyncItem item : getSyncItems()) {
+            if (item.isIndex) {
+                if (item.originValue instanceof Integer || item.originValue instanceof Double) {
+                    conditions.add(String.format(" %s = %s ", item.fieldName, item.originValue));
+                } else {
+                    conditions.add(String.format(" %s = '%s' ", item.fieldName, item.originValue.toString()));
+
+                }
+            }
+        }
+        return StringUtils.join(conditions.toArray(), " and ");
     }
 
     @Override
@@ -152,12 +207,12 @@ public class SyncOperationImpl implements SyncOperation {
         List<SyncItem> mergedItems = new ArrayList<>(selfItems);
 //        Collections.copy(mergedItems,toMergeItems);
         nextToMergeItem:
-        for(SyncItem toMergeItem : toMergeItems){
-            for(SyncItem selfItem : selfItems){
-                if(selfItem.fieldName.equals(toMergeItem.fieldName)){
+        for (SyncItem toMergeItem : toMergeItems) {
+            for (SyncItem selfItem : selfItems) {
+                if (selfItem.fieldName.equals(toMergeItem.fieldName)) {
                     //found item with same field, check timestamp,
                     //replace item with newer one if necessary
-                    if(toMergeOp.getTime().after(this.getTime())){
+                    if (toMergeOp.getTime().after(this.getTime())) {
                         mergedItems.remove(selfItem);
                         mergedItems.add(toMergeItem);
                     }
@@ -173,7 +228,7 @@ public class SyncOperationImpl implements SyncOperation {
                 toMergeOp.getTime()
                 :
                 getTime();
-        operationTime = DateUtils.addSeconds(operationTime,1);
+        operationTime = DateUtils.addSeconds(operationTime, 1);
         List<String> sourceList = new ArrayList<>(syncStatusMap.keySet());
 
         return new SyncOperationImpl(
