@@ -28,7 +28,7 @@ public class TestSchemaRuleCollection {
     @Test
     public void testLoadIllegalString() {
         thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("Wrong filter format, must follow db.table.field format");
+        thrown.expectMessage("Wrong filter format, *.updated_at not following db.table.field format");
         SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFilter("*.updated_at");
     }
 
