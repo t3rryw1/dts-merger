@@ -24,6 +24,8 @@ public class SyncMain {
         Properties prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
+        System.out.printf("Running with %d threads%n",threadNumber);
+
 
         final List<DataSource> dataSources = new ArrayList<>();
         final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
@@ -55,6 +57,7 @@ public class SyncMain {
                 synchronized (pool) {
                     toProcess = pool.poll();
                     if (toProcess == null) {
+//                        System.out.println("No SyncTask to process");
                         return;
                     }
 
@@ -102,6 +105,9 @@ public class SyncMain {
 
 
         }
+
+        Thread.sleep(1000 * 60 * 24);
+
 
 
     }

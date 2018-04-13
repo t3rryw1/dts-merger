@@ -85,6 +85,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
     @Override
     public void start() {
         /* 创建集群消费listener */
+        System.out.printf("Start data source of instanceId : %s%n", subscribeInstanceID);
         ClusterListener listener = new ClusterListener() {
             @Override
             public void notify(List<ClusterMessage> messages) {
