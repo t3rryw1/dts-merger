@@ -39,11 +39,6 @@ public class TestSyncItem {
         Assert.assertNotEquals(item2, item5);
     }
 
-    @Test
-    public void testSq() {
-
-    }
-
     @After
     public void tearDown() {
         System.out.println("tear down " + this.getClass().getName());
