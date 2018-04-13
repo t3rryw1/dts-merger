@@ -23,7 +23,7 @@ public class SyncMain {
         System.out.print("DB Sync runner launched");
         Properties prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
-        Integer threadNumber = Integer.valueOf(prop.getProperty("thread_number", "5"));
+        Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
 
         final List<DataSource> dataSources = new ArrayList<>();
         final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
@@ -54,22 +54,20 @@ public class SyncMain {
                 SyncTask toProcess;
                 synchronized (pool) {
                     toProcess = pool.poll();
-                }
-                if (toProcess == null) {
-                    return;
-                }
+                    if (toProcess == null) {
+                        return;
+                    }
 
 
-                for (DataSource source :
-                        dataSources) {
-                    for (SyncOperation operation : toProcess.getOperations()) {
-                        if (operation.shouldSendToSource(source.getName())) {
-                            source.writeDB(operation);
-                            operation.setSourceSend(source.getName());
+                    for (DataSource source :
+                            dataSources) {
+                        for (SyncOperation operation : toProcess.getOperations()) {
+                            if (operation.shouldSendToSource(source.getName())) {
+                                source.writeDB(operation);
+                                operation.setSourceSend(source.getName());
+                            }
                         }
                     }
-                }
-                synchronized (pool) {
                     pool.add(toProcess);
                 }
             }
