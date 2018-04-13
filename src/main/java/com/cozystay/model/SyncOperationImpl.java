@@ -88,10 +88,10 @@ public class SyncOperationImpl implements SyncOperation {
                         continue;
                     }
 
-                    if (item.originValue instanceof Integer || item.originValue instanceof Double) {
-                        operations.add(String.format(" %s = %s ", item.fieldName, item.originValue.toString()));
+                    if (item.currentValue instanceof Integer || item.currentValue instanceof Double) {
+                        operations.add(String.format(" %s = %s ", item.fieldName, item.currentValue.toString()));
                     } else {
-                        operations.add(String.format(" %s = '%s' ", item.fieldName, item.originValue.toString()));
+                        operations.add(String.format(" %s = '%s' ", item.fieldName, item.currentValue.toString()));
 
                     }
 
