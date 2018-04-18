@@ -9,6 +9,8 @@ import java.util.Map;
 
 public interface SyncOperation {
 
+    String toString();
+
     SyncTask getTask();
 
     Date getTime();

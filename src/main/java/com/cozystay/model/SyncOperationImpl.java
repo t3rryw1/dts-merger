@@ -35,6 +35,9 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
+    public String toString() { return "operationType: " + this.getOperationType() + "status: " + this.getSyncStatus().toString() + "; sql: " + this.buildSql() + "time: " + this.getTime();}
+
+    @Override
     public SyncTask getTask() {
         return this.task;
     }
