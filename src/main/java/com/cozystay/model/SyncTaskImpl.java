@@ -28,6 +28,14 @@ public class SyncTaskImpl implements SyncTask {
         operations = new LinkedList<>();
     }
 
+    @Override
+    public String toString(){
+        String operationStr = "";
+        for(SyncOperation operation : this.operations){
+            operationStr = operationStr + "\n" + operation.toString();
+        }
+        return "id: " + this.getId() + "; operations: " + operationStr;
+    }
 
     @Override
     public String getId() {

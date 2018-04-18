@@ -14,7 +14,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import org.slf4j.*;
+
 public class MessageParser {
+    private static Logger LOGGER = LoggerFactory.getLogger(MessageParser.class);
     private static final SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     static SyncTask parseMessage(ClusterMessage message,
@@ -42,6 +45,9 @@ public class MessageParser {
         parseItems(builder, record);
 
         SyncTask newTask = builder.build();
+
+        LOGGER.info("create task: {}", newTask.toString());
+
         if (rules.filter(newTask.getOperations().get(0))) {
             return null;
         } else {
