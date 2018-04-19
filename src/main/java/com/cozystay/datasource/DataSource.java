@@ -1,4 +1,4 @@
-package com.cozystay.dts;
+package com.cozystay.datasource;
 
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.model.SyncOperation;

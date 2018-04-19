@@ -1,4 +1,4 @@
-package com.cozystay.dts;
+package com.cozystay.datasource;
 
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
@@ -15,9 +15,9 @@ import java.util.Date;
 import java.util.List;
 
 import org.slf4j.*;
+public class DTSMessageParser {
+    private static Logger LOGGER = LoggerFactory.getLogger(DTSMessageParser.class);
 
-public class MessageParser {
-    private static Logger LOGGER = LoggerFactory.getLogger(MessageParser.class);
     private static final SimpleDateFormat defaultDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     static SyncTask parseMessage(ClusterMessage message,
