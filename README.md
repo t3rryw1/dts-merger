@@ -22,4 +22,9 @@
 + ~~处理SyncOperation里primary keys~~
 + ~~输出SQL~~
     * 测试多种情况下的 SQL 输出是否正确
+    * 将数据写回至数据库
 + 使用log4j进行格式化的日志输出
++ 保存每个 db 的binlog 位点到 redis，下次启动使用位点启动，避免丢失数据改动
++ 启动时读取db 的 schema，并在接收每条数据时使用 schema 生成正确的 synctask
++ 本地验证数据库同步逻辑正确。
+

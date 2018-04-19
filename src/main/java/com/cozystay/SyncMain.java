@@ -1,7 +1,8 @@
 package com.cozystay;
 
-import com.cozystay.dts.AbstractDataSourceImpl;
-import com.cozystay.dts.DataSource;
+import com.cozystay.datasource.BinLogDataSourceImpl;
+import com.cozystay.datasource.DTSDataSourceImpl;
+import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
@@ -81,7 +82,7 @@ public class SyncMain {
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             try {
 
-                final DataSource source = new AbstractDataSourceImpl(prop, "db" + i) {
+                final DataSource source = new BinLogDataSourceImpl(prop, "db" + i) {
                     @Override
                     public void consumeData(SyncTask task) {
                         runner.addTask(task);

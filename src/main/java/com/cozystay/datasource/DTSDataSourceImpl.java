@@ -1,4 +1,4 @@
-package com.cozystay.dts;
+package com.cozystay.datasource;
 
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.ClusterClient;
@@ -19,14 +19,14 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Properties;
 
-public abstract class AbstractDataSourceImpl implements DataSource {
+public abstract class DTSDataSourceImpl implements DataSource {
     private final String subscribeInstanceID;
-    private static Logger logger = LoggerFactory.getLogger(AbstractDataSourceImpl.class);
+    private static Logger logger = LoggerFactory.getLogger(DTSDataSourceImpl.class);
     private final ClusterClient client;
     private final Writer writer;
     private final SchemaRuleCollection schemaRuleCollection;
 
-    protected AbstractDataSourceImpl(Properties prop, String prefix) throws Exception {
+    protected DTSDataSourceImpl(Properties prop, String prefix) throws Exception {
 
 
         String dbAddress, accessKey, accessSecret, subscribeInstanceID, dbUser, dbPassword;
@@ -56,7 +56,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
 
         this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
 
-        System.out.printf("Start DataSource using config: %s:%d, access key: %s, instance id: %s%n",
+        System.out.printf("Start DTSDataSource using config: %s:%d, access key: %s, instance id: %s%n",
                 dbAddress,
                 dbPort,
                 accessKey,
@@ -95,7 +95,7 @@ public abstract class AbstractDataSourceImpl implements DataSource {
                         if (shouldFilterMessage(message)) {
                             continue;
                         }
-                        SyncTask task = MessageParser.parseMessage(message, subscribeInstanceID, schemaRuleCollection);
+                        SyncTask task = DTSMessageParser.parseMessage(message, subscribeInstanceID, schemaRuleCollection);
                         if (task != null) {
                             consumeData(task);
                         }
