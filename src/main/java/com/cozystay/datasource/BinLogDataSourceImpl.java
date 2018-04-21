@@ -5,20 +5,24 @@ import com.cozystay.db.SimpleDBWriterImpl;
 import com.cozystay.db.Writer;
 import com.cozystay.model.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
+import com.cozystay.model.SyncTask;
+import com.cozystay.model.SyncTaskBuilder;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.sql.*;
 import java.text.ParseException;
 import java.util.*;
+import java.util.Date;
 
 public abstract class BinLogDataSourceImpl implements DataSource {
     private final SchemaRuleCollection schemaRuleCollection;
     private final Writer writer;
     private final BinaryLogClient client;
-    private String serverId;
+
     private String subscribeInstanceID;
     private final String dbAddress;
     private final Integer dbPort;
@@ -27,7 +31,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     private Map<String, SchemaDatabase> databaseMap;
 
     protected BinLogDataSourceImpl(Properties prop, String prefix) throws Exception {
-        String dbAddress, accessKey, accessSecret, subscribeInstanceID, dbUser, dbPassword;
+        String dbAddress, subscribeInstanceID, dbUser, dbPassword;
         int dbPort;
         if ((dbAddress = prop.getProperty(prefix + ".dbAddress")) == null) {
             throw new ParseException(prefix + ".dbAddress", 1);
@@ -46,7 +50,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             throw new ParseException(prefix + ".subscribeInstanceID", 7);
         }
 
-
+        this.subscribeInstanceID = subscribeInstanceID;
         this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
         this.dbAddress = dbAddress;
         this.dbPort = dbPort;
@@ -76,13 +80,15 @@ public abstract class BinLogDataSourceImpl implements DataSource {
 
     @Override
     public void start() {
-        loadDB();
+        loadDBSchema(this.schemaRuleCollection);
         EventDeserializer eventDeserializer = new EventDeserializer();
-//        eventDeserializer.setEventDataDeserializer(EventType.GTID,new NullEventDataDeserializer());
-//        eventDeserializer.setEventDataDeserializer(EventType.ROTATE,new NullEventDataDeserializer());
         client.registerEventListener(new BinaryLogClient.EventListener() {
+            private String currentTable;
+            private String currentDB;
+
             @Override
             public void onEvent(Event event) {
+
 
                 switch (event.getHeader().getEventType()) {
                     case TABLE_MAP: {
@@ -90,30 +96,73 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                         System.out.printf("%s, %s %n",
                                 data.getDatabase(),
                                 data.getTable());
-                        for (int type : data.getColumnMetadata()) {
-                            System.out.print(type + " ");
+                        currentTable = data.getTable();
+                        currentDB = data.getDatabase();
+                        break;
+
+                    }
+                    case UPDATE_ROWS:
+                    case DELETE_ROWS:
+                    case WRITE_ROWS: {
+                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+                        builder.setSource(subscribeInstanceID);
+                        builder.setTableName(currentTable);
+                        builder.setDatabase(currentDB);
+                        builder.setOperationTime(new Date(event.getHeader().getTimestamp()));
+                        UuidBuilder uuidBuilder = new UuidBuilder();
+                        SchemaTable table = databaseMap.get(currentDB).getTable(currentTable);
+
+                        switch (event.getHeader().getEventType()) {
+                            case UPDATE_ROWS: {
+                                builder.setOperationType(SyncOperation.OperationType.UPDATE);
+                                UpdateRowsEventData data = event.getData();
+                                BitSet updated = data.getIncludedColumns();
+                                BitSet beforeUpdate = data.getIncludedColumnsBeforeUpdate();
+                                Map.Entry<Serializable[], Serializable[]> values = data.getRows().get(0);
+                                for (int i = 0; i < table.getFieldList().size(); i++) {
+                                    SchemaField field = table.getFieldList().get(i);
+                                    if (!updated.get(i) || !beforeUpdate.get(i)) {
+                                        continue;
+                                    }
+                                    Serializable oldValue = values.getKey()[i];
+                                    Serializable newValue = values.getValue()[i];
+                                    SyncOperation.SyncItem item = buildItem(field, oldValue, newValue);
+                                    if (field.isPrimary) {
+                                        uuidBuilder.addValue(oldValue.toString());
+                                    }
+                                    if (item != null) {
+                                        builder.addItem(item);
+                                    }
+                                }
+                            }
+                            break;
+                            case DELETE_ROWS: {
+                                builder.setOperationType(SyncOperation.OperationType.DELETE);
+                                DeleteRowsEventData deleteData = event.getData();
+                                BitSet updated = deleteData.getIncludedColumns();
+                                deleteData.getRows();
+                                break;
+                            }
+                            case WRITE_ROWS: {
+                                builder.setOperationType(SyncOperation.OperationType.CREATE);
+                                WriteRowsEventData writeData = event.getData();
+                                BitSet updated = writeData.getIncludedColumns();
+                                writeData.getRows();
+                                break;
+                            }
+                        }
+                        builder.setUuid(uuidBuilder.build());
+                        SyncTask task = builder.build();
+//                        System.out.println(data.toString());
+
+                        if (task != null) {
+                            consumeData(task);
                         }
 
 
                         break;
-
-                    }
-                    case UPDATE_ROWS: {
-                        UpdateRowsEventData data = event.getData();
-                        System.out.println(data.toString());
-                        break;
                     }
 
-                    case DELETE_ROWS: {
-                        DeleteRowsEventData data = event.getData();
-                        System.out.println(data.toString());
-                        break;
-                    }
-                    case WRITE_ROWS: {
-                        WriteRowsEventData data = event.getData();
-                        System.out.println(data.toString());
-                        break;
-                    }
                     default:
 
 
@@ -160,15 +209,21 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         }
     }
 
-    private void loadDB() {
-        String connString = String.format("jdbc:mysql://%s:%d/?user=%s&password=%s",
+    private SyncOperation.SyncItem buildItem(SchemaField field, Serializable oldValue, Serializable newValue) {
+        return new SyncOperation.SyncItem<>(field.columnName,
+                oldValue,
+                newValue,
+                field.columnType,
+                field.isPrimary);
+    }
+
+    private void loadDBSchema(SchemaRuleCollection collection) {
+        String connString = String.format("jdbc:mysql://%s:%d/",
                 this.dbAddress,
-                this.dbPort,
-                this.dbUser,
-                this.dbPassword);
-        Connection connection;
+                this.dbPort);
+        Connection connection = null;
         try {
-            connection = DriverManager.getConnection(connString);
+            connection = DriverManager.getConnection(connString, dbUser, dbPassword);
             DatabaseMetaData metaData = connection.getMetaData();
             try (ResultSet tableResultSet = metaData.getTables(null, "public", "%", new String[]{"TABLE"})) {
                 while (tableResultSet.next()) {
@@ -182,23 +237,63 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                     }
                     String tableName = tableResultSet.getString(3);
                     SchemaTable table = new SchemaTable(tableName, "UTF-8");
-                    database.addTable(table);
+                    database.addTable(tableName, table);
+
+                    List<String> indexFields = tableIndexFields(metaData,
+                            schemaRuleCollection,
+                            dbName,
+                            tableName);
+
                     try (ResultSet columnResultSet = metaData.getColumns(null, "public", tableName, "%")) {
                         int index = 1;
                         while (columnResultSet.next()) {
                             String columnName = columnResultSet.getString("COLUMN_NAME");
                             String columnType = columnResultSet.getString("DATA_TYPE");
-                            Integer typeVal = Integer.valueOf(columnType);
-//                            String typeName = columnResultSet.getString("TYPE_NAME");
-                            table.addField(new SchemaField(columnName, typeVal, index));
+                            String typeName = columnResultSet.getString("TYPE_NAME");
+                            System.out.printf("%s %s %s%n", columnName, columnType, typeName);
+                            if (indexFields.contains(columnName)) {
+                                table.addField(new SchemaField(columnName, typeName, index, true));
+                            } else {
+                                table.addField(new SchemaField(columnName, typeName, index, false));
+                            }
                             index++;
-//                            System.out.printf("%s %s %s%n", columnName, columnType, typeName);
                         }
                     }
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    private List<String> tableIndexFields(DatabaseMetaData metaData,
+                                          SchemaRuleCollection ruleCollection,
+                                          String dbName,
+                                          String tableName) {
+
+        List<String> presetFields = ruleCollection.getPrimaryKeys(dbName, tableName);
+        if (presetFields != null) {
+            return presetFields;
+        }
+        try {
+            List<String> fieldsFromSchema = new ArrayList<>();
+            ResultSet set = metaData.getPrimaryKeys(dbName, null, tableName);
+            while (set.next()) {
+                fieldsFromSchema.add(set.getString(4));
+            }
+            return fieldsFromSchema;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
         }
 
     }
@@ -220,86 +315,39 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     class SchemaDatabase {
         final String dbName;
         final String dbEncoding;
-        final List<SchemaTable> tableList;
+        final Map<String, SchemaTable> tableList;
 
         SchemaDatabase(String dbName, String dbEncoding) {
             this.dbName = dbName;
             this.dbEncoding = dbEncoding;
-            tableList = new ArrayList<>();
+            tableList = new HashMap<>();
 
         }
 
-        void addTable(SchemaTable table) {
-            this.tableList.add(table);
+        void addTable(String tableName, SchemaTable table) {
+            this.tableList.put(tableName, table);
         }
 
+        SchemaTable getTable(String tableName) {
+            return this.tableList.get(tableName);
+        }
 
     }
 
     class SchemaField {
         final String columnName;
-        final ColumnType columnType;
+        final SyncOperation.SyncItem.ColumnType columnType;
         final int index;
+        final boolean isPrimary;
 
-        SchemaField(String columnName, int columnType, int index) {
+        SchemaField(String columnName, String columnType, int index, boolean isPrimary) {
             this.columnName = columnName;
-            this.columnType = ColumnType.valueOf(columnType);
+            this.columnType = SyncOperation.SyncItem.ColumnType.fromString(columnType);
             this.index = index;
+            this.isPrimary = isPrimary;
         }
     }
 
-    enum ColumnType {
-        BIT(-7),
-        UNSIGNED_BIGINT(-5),
-        TEXT(-1),
-        CHAR(1),
-        INT(4),
-        DOUBLE(8),
-        TIMESTAMP(93),
-        VARCHAR(12);
-        private int value;
-
-
-        ColumnType(int value) {
-            this.value = value;
-        }
-
-        @Override
-        public String toString() {
-            return this.name();
-        }
-
-        public Integer getValue() {
-            return this.value;
-        }
-
-        static ColumnType valueOf(int value) {
-            switch (value) {
-                case -7:
-                    return BIT;
-                case -5:
-                    return UNSIGNED_BIGINT;
-                case -1:
-                    return TEXT;
-                case 1:
-                    return CHAR;
-                case 4:
-                    return INT;
-                case 8:
-                    return DOUBLE;
-                case 12:
-                    return VARCHAR;
-                case 93:
-                    return TIMESTAMP;
-                default:
-                    return null;
-
-            }
-        }
-
-    }
-
-    ;
 
     class SchemaTable {
         final String tableName;

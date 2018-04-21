@@ -1,8 +1,9 @@
-package com.cozystay.dts;
+package com.cozystay.datasource;
 
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.SyncMain;
+import com.cozystay.datasource.DTSMessageParser;
 import com.cozystay.model.SchemaRuleCollection;
 import com.cozystay.model.SyncTask;
 import org.junit.After;
@@ -28,7 +29,7 @@ public class TestMessageParser {
         Properties prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/test-filter.properties"));
         SchemaRuleCollection rules = SchemaRuleCollection.loadRules(prop);
-        SyncTask task = MessageParser.parseMessage(message, "source1", rules);
+        SyncTask task = DTSMessageParser.parseMessage(message, "source1", rules);
     }
 
     @After
