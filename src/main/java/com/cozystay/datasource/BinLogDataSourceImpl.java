@@ -126,13 +126,25 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                     }
                                     Serializable oldValue = values.getKey()[i];
                                     Serializable newValue = values.getValue()[i];
-                                    SyncOperation.SyncItem item = buildItem(field, oldValue, newValue);
-                                    if (field.isPrimary) {
-                                        uuidBuilder.addValue(oldValue.toString());
+                                    if (oldValue != null) {
+                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
+                                                field.columnName,
+                                                field.columnType.name(),
+                                                oldValue.getClass().toString());
+                                    } else {
+                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
+                                                field.columnName,
+                                                field.columnType.name());
+
                                     }
-                                    if (item != null) {
-                                        builder.addItem(item);
-                                    }
+//                                    if (field.isPrimary) {
+//                                        uuidBuilder.addValue(oldValue.toString());
+//                                    }
+//
+//                                    SyncOperation.SyncItem item = buildItem(field, oldValue, newValue);
+//                                    if (item != null) {
+//                                        builder.addItem(item);
+//                                    }
                                 }
                             }
                             break;
@@ -151,7 +163,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                 break;
                             }
                         }
-                        builder.setUuid(uuidBuilder.build());
+//                        builder.setUuid(uuidBuilder.build());
                         SyncTask task = builder.build();
 //                        System.out.println(data.toString());
 
@@ -210,6 +222,16 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     private SyncOperation.SyncItem buildItem(SchemaField field, Serializable oldValue, Serializable newValue) {
+
+        switch (field.columnType) {
+            case CHAR:
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue.toString(),
+                        newValue.toString(),
+                        field.columnType,
+                        field.isPrimary);
+        }
+
         return new SyncOperation.SyncItem<>(field.columnName,
                 oldValue,
                 newValue,
@@ -240,7 +262,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                     database.addTable(tableName, table);
 
                     List<String> indexFields = tableIndexFields(metaData,
-                            schemaRuleCollection,
+                            collection,
                             dbName,
                             tableName);
 
