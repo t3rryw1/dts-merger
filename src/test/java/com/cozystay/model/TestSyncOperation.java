@@ -14,7 +14,7 @@ public class TestSyncOperation {
     @Test
     public void testCreation(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("user_notes", "val1", "val2",true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("user_notes", "val1", "val2",SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
@@ -33,8 +33,8 @@ public class TestSyncOperation {
     @Test
     public void testSameOperation(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
-        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "xx",true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "xx",SyncOperation.SyncItem.ColumnType.CHAR,true);
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));
 
         SyncOperation operation1 = new SyncOperationImpl( task,
@@ -65,7 +65,7 @@ public class TestSyncOperation {
     @Test
     public void testStatus(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
@@ -81,7 +81,7 @@ public class TestSyncOperation {
     @Test
     public void testMerge(){
         SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
@@ -112,7 +112,7 @@ public class TestSyncOperation {
         String currentValue = "the newer string";
 
         SyncTask task = new SyncTaskImpl("id-111", "cozystay_db", tableName);
-        SyncOperation.SyncItem itemWithIndex = new SyncOperation.SyncItem<>(indexFieldName, originValue, currentValue,true);
+        SyncOperation.SyncItem itemWithIndex = new SyncOperation.SyncItem<>(indexFieldName, originValue, currentValue,SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operationCreate = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
@@ -160,11 +160,11 @@ public class TestSyncOperation {
 
         SyncTask task = new SyncTaskImpl("id-111", "cozystay_db", tableName);
 
-        SyncOperation.SyncItem itemWithIndex1 = new SyncOperation.SyncItem<>(indexFieldName1, originValue, currentValue,true);
-        SyncOperation.SyncItem itemWithIndex2 = new SyncOperation.SyncItem<>(indexFieldName2, originValue, currentValue,true);
+        SyncOperation.SyncItem itemWithIndex1 = new SyncOperation.SyncItem<>(indexFieldName1, originValue, currentValue,SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem itemWithIndex2 = new SyncOperation.SyncItem<>(indexFieldName2, originValue, currentValue,SyncOperation.SyncItem.ColumnType.CHAR,true);
 
-        SyncOperation.SyncItem itemWithoutIndex1 = new SyncOperation.SyncItem<>(fieldName1, originValue, currentValue, false);
-        SyncOperation.SyncItem itemWithoutIndex2 = new SyncOperation.SyncItem<>(fieldName2, originValue, currentValue, false);
+        SyncOperation.SyncItem itemWithoutIndex1 = new SyncOperation.SyncItem<>(fieldName1, originValue, currentValue, SyncOperation.SyncItem.ColumnType.CHAR,false);
+        SyncOperation.SyncItem itemWithoutIndex2 = new SyncOperation.SyncItem<>(fieldName2, originValue, currentValue, SyncOperation.SyncItem.ColumnType.CHAR,false);
 
         SyncOperation operationCreateWithMultiItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,

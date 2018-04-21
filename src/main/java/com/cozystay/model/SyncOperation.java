@@ -3,6 +3,8 @@ package com.cozystay.model;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -60,12 +62,18 @@ public interface SyncOperation {
         public final T originValue;
         public final T currentValue;
         public final boolean isIndex;
+        public final ColumnType fieldType;
 
-        public SyncItem(String fieldName, T originValue, T currentValue, boolean isIndex) {
+        public SyncItem(String fieldName,
+                        T originValue,
+                        T currentValue,
+                        ColumnType columnType,
+                        boolean isIndex) {
             this.fieldName = fieldName;
             this.originValue = originValue;
             this.currentValue = currentValue;
             this.isIndex = isIndex;
+            this.fieldType = columnType;
         }
 
 
@@ -78,6 +86,7 @@ public interface SyncOperation {
                     .append(fieldName, item.fieldName)
                     .append(currentValue, item.currentValue)
                     .append(originValue, item.originValue)
+                    .append(fieldType, item.fieldType)
                     .append(isIndex, item.isIndex)
                     .isEquals();
         }
@@ -88,8 +97,79 @@ public interface SyncOperation {
                     .append(fieldName)
                     .append(currentValue)
                     .append(originValue)
+                    .append(fieldType)
                     .append(isIndex)
                     .toHashCode();
+        }
+
+
+
+        public enum ColumnType {
+            BIT,
+            BOOL,
+            BOOLEAN,
+
+            TINYTEXT,
+            MEDIUMTEXT,
+            LONGTEXT,
+            TEXT,
+
+            ENUM,
+
+
+            INT,
+            UNSIGNED_INT,
+            TINYINT,
+            UNSIGNED_TINYINT,
+            SMALLINT,
+            UNSIGNED_SMALLINT,
+            MEDIUMINT,
+            UNSIGNED_MEDIUMINT,
+            BIGINT,
+            UNSIGNED_BIGINT,
+
+            DOUBLE,
+            UNSIGNED_DOUBLE,
+            DECIMAL,
+            UNSIGNED_DECIMAL,
+
+            DATE,
+            TIMESTAMP,
+            DATETIME,
+            TIME,
+            YEAR,
+
+            VARCHAR,
+            CHAR,
+            JSON;
+
+
+            public static ColumnType fromString(String type) {
+                try{
+                    return ColumnType.valueOf(type);
+                }catch (IllegalArgumentException e){
+                    switch (type) {
+                        case "INT UNSIGNED":
+                            return UNSIGNED_INT;
+                        case "TINYINT UNSIGNED":
+                            return UNSIGNED_TINYINT;
+                        case "SMALLINT UNSIGNED":
+                            return UNSIGNED_SMALLINT;
+                        case "MEDIUMINT UNSIGNED":
+                            return UNSIGNED_MEDIUMINT;
+                        case "BIGINT UNSIGNED":
+                            return UNSIGNED_BIGINT;
+                        case "DECIMAL UNSIGNED":
+                            return UNSIGNED_DECIMAL;
+                        case "DOUBLE UNSIGNED":
+                            return UNSIGNED_DOUBLE;
+                        default:
+                            return null;
+
+                    }
+
+                }
+            }
         }
     }
 

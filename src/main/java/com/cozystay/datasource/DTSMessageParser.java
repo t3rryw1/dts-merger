@@ -195,22 +195,25 @@ public class DTSMessageParser {
                 return new SyncOperation.SyncItem<>(fieldName,
                         originValue,
                         newValue,
+                        SyncOperation.SyncItem.ColumnType.CHAR,
                         field.isPrimary());
             case INT8:
             case INT16:
             case INT24:
             case INT32:
             case INT64:
-            case DECIMAL:
                 return new SyncOperation.SyncItem<>(fieldName,
                         Integer.valueOf(originValue),
                         Integer.valueOf(newValue),
+                        SyncOperation.SyncItem.ColumnType.INT,
                         field.isPrimary());
+            case DECIMAL:
             case FLOAT:
             case DOUBLE:
                 return new SyncOperation.SyncItem<>(fieldName,
-                        Double.valueOf(originValue),
-                        Double.valueOf(newValue),
+                        Integer.valueOf(originValue),
+                        Integer.valueOf(newValue),
+                        SyncOperation.SyncItem.ColumnType.DECIMAL,
                         field.isPrimary());
             case DATE:
             case DATETIME:
@@ -218,6 +221,7 @@ public class DTSMessageParser {
                 return new SyncOperation.SyncItem<>(fieldName,
                         Date.parse(originValue),
                         Date.parse(newValue),
+                        SyncOperation.SyncItem.ColumnType.DATE,
                         field.isPrimary());
             case NULL:
                 break;
@@ -225,6 +229,7 @@ public class DTSMessageParser {
                 return new SyncOperation.SyncItem<>(fieldName,
                         defaultDateFormat.parse(originValue),
                         defaultDateFormat.parse(newValue),
+                        SyncOperation.SyncItem.ColumnType.TIMESTAMP,
                         field.isPrimary());
             case YEAR:
                 break;
@@ -232,6 +237,7 @@ public class DTSMessageParser {
                 return new SyncOperation.SyncItem<>(fieldName,
                         Boolean.getBoolean(originValue),
                         Boolean.getBoolean(newValue),
+                        SyncOperation.SyncItem.ColumnType.BIT,
                         field.isPrimary());
             case SET:
                 break;

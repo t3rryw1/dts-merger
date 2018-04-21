@@ -29,7 +29,7 @@ public class TestSyncTask {
     public void testMerge(){
         SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table");
         SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("name", "aa", "bb",true);
+        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         task1.addOperation(
                 new SyncOperationImpl(null,
