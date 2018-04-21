@@ -137,14 +137,20 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                                 field.columnType.name());
 
                                     }
-//                                    if (field.isPrimary) {
-//                                        uuidBuilder.addValue(oldValue.toString());
-//                                    }
-//
-//                                    SyncOperation.SyncItem item = buildItem(field, oldValue, newValue);
-//                                    if (item != null) {
-//                                        builder.addItem(item);
-//                                    }
+                                    if (field.isPrimary) {
+                                        uuidBuilder.addValue(oldValue.toString());
+                                    }
+
+                                    SyncOperation.SyncItem item = buildItem(field, oldValue, newValue);
+                                    if (item == null){
+                                        continue;
+                                    }
+                                    if(item.isIndex){
+                                        builder.addItem(item);
+                                    }
+                                    if(item.hasChange()) {
+                                        builder.addItem(item);
+                                    }
                                 }
                             }
                             break;
@@ -163,7 +169,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                 break;
                             }
                         }
-//                        builder.setUuid(uuidBuilder.build());
+                        builder.setUuid(uuidBuilder.build());
                         SyncTask task = builder.build();
 //                        System.out.println(data.toString());
 

@@ -3,8 +3,6 @@ package com.cozystay.model;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-import java.io.Serializable;
-import java.math.BigInteger;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +101,19 @@ public interface SyncOperation {
         }
 
 
+        public boolean hasChange() {
+            if (this.originValue == null && this.currentValue == null)
+                return false;
+            if (this.originValue == null) {
+                return true;
+            }
+            if (this.currentValue == null) {
+                return true;
+            }
+
+            return !this.originValue.equals(this.currentValue);
+        }
+
 
         public enum ColumnType {
             BIT,
@@ -145,9 +156,9 @@ public interface SyncOperation {
 
 
             public static ColumnType fromString(String type) {
-                try{
+                try {
                     return ColumnType.valueOf(type);
-                }catch (IllegalArgumentException e){
+                } catch (IllegalArgumentException e) {
                     switch (type) {
                         case "INT UNSIGNED":
                             return UNSIGNED_INT;
