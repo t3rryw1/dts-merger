@@ -3,16 +3,13 @@ package com.cozystay.datasource;
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.SyncMain;
-import com.cozystay.datasource.DTSMessageParser;
-import com.cozystay.model.SchemaRuleCollection;
+import com.cozystay.db.schema.SchemaRuleCollection;
 import com.cozystay.model.SyncTask;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import java.io.IOException;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Properties;
 
 public class TestMessageParser {

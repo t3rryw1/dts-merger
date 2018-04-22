@@ -16,7 +16,7 @@ public class SyncTaskImpl implements SyncTask {
     private final List<SyncOperation> operations;
 
 
-    SyncTaskImpl(
+    public SyncTaskImpl(
             String uuid,
             String database,
             String tableName) {

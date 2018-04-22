@@ -8,7 +8,7 @@ import com.aliyun.drc.clusterclient.RegionContext;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.db.SimpleDBWriterImpl;
 import com.cozystay.db.Writer;
-import com.cozystay.model.SchemaRuleCollection;
+import com.cozystay.db.schema.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import org.slf4j.Logger;

@@ -1,6 +1,11 @@
-package com.cozystay.model;
+package com.cozystay.db.schema;
 
 import com.cozystay.SyncMain;
+import com.cozystay.db.schema.SchemaRuleCollection;
+import com.cozystay.model.SyncOperation;
+import com.cozystay.model.SyncOperationImpl;
+import com.cozystay.model.SyncTask;
+import com.cozystay.model.SyncTaskImpl;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 

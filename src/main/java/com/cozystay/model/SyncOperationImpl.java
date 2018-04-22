@@ -12,12 +12,12 @@ public class SyncOperationImpl implements SyncOperation {
     private final Map<String, SyncStatus> syncStatusMap;
     private final Date operationTime;
 
-    SyncOperationImpl(SyncTask task,
-                      OperationType operationType,
-                      List<SyncItem> syncItems,
-                      String source,
-                      List<String> sourceList,
-                      Date operationTime) {
+    public SyncOperationImpl(SyncTask task,
+                             OperationType operationType,
+                             List<SyncItem> syncItems,
+                             String source,
+                             List<String> sourceList,
+                             Date operationTime) {
         this.task = task;
         this.operationType = operationType;
         this.syncItems = syncItems;
