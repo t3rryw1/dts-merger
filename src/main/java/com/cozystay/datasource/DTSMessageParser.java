@@ -2,7 +2,7 @@ package com.cozystay.datasource;
 
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
-import com.cozystay.model.SchemaRuleCollection;
+import com.cozystay.db.schema.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;

@@ -1,4 +1,7 @@
-package com.cozystay.model;
+package com.cozystay.db.schema;
+
+import com.cozystay.model.SyncOperation;
+import com.cozystay.model.SyncTask;
 
 import java.text.MessageFormat;
 import java.util.*;
@@ -11,7 +14,6 @@ public class SchemaRuleCollection {
         filterRules = new ArrayList<>();
         indexRules = new ArrayList<>();
     }
-
     public boolean filter(SyncOperation operation) {
 
         List<SyncOperation.SyncItem> items = operation.getSyncItems();
