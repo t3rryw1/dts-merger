@@ -297,8 +297,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     private Boolean checkTypes(String value) {
-        System.out.print(value+"\n");
-        List<String> idFields = new ArrayList<>(Arrays.asList(
+        List<String> allowedTypes = new ArrayList<>(Arrays.asList(
                 "java.lang.String",
                 "java.lang.Byte",
                 "java.lang.Short",
@@ -306,11 +305,11 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 "java.lang.Long",
                 "java.lang.Float",
                 "java.lang.Double",
-                "java.lang.Double",
-                "java.lang.Character"
+                "java.lang.BigDecimal",
+                "java.lang.Character",
+                "java.lang.Boolean"
         ));
-        System.out.print(idFields.contains(value)+"\n");
-        return idFields.contains(value);
+        return allowedTypes.contains(value);
     }
 
     private SyncOperation.SyncItem buildItem(SchemaField field,
