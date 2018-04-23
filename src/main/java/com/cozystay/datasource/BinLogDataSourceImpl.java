@@ -326,6 +326,16 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         }
 
         switch (field.columnType) {
+            case BIT:
+            case BOOL:
+            case BOOLEAN:{
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue,
+                        newValue,
+                        field.columnType,
+                        field.isPrimary);
+            }
+
             case ENUM:
                 return new SyncOperation.SyncItem<>(field.columnName,
                         oldValue,
@@ -407,6 +417,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 throw new IllegalArgumentException("Can't parse Illegal ColumnType");
             }
         }
+
+
     }
 
     @Override
