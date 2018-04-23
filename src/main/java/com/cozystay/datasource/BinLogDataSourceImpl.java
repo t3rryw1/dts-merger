@@ -13,14 +13,12 @@ import com.cozystay.model.SyncTaskBuilder;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.text.ParseException;
-import java.util.BitSet;
-import java.util.Date;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
 public abstract class BinLogDataSourceImpl implements DataSource {
     private final SchemaRuleCollection schemaRuleCollection;
@@ -123,17 +121,17 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                     }
                                     Serializable oldValue = values.getKey()[i];
                                     Serializable newValue = values.getValue()[i];
-                                    if (oldValue != null) {
-                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
-                                                field.columnName,
-                                                field.columnType.name(),
-                                                oldValue.getClass().toString());
-                                    } else {
-                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
-                                                field.columnName,
-                                                field.columnType.name());
-
-                                    }
+//                                    if (oldValue != null) {
+//                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
+//                                                field.columnName,
+//                                                field.columnType.name(),
+//                                                oldValue.getClass().getName());
+//                                    } else {
+//                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
+//                                                field.columnName,
+//                                                field.columnType.name());
+//
+//                                    }
                                     if (field.isPrimary) {
                                         assert oldValue != null;
                                         uuidBuilder.addValue(oldValue.toString());
@@ -163,17 +161,17 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                         continue;
                                     }
                                     Serializable value = values[i];
-                                    if (value != null) {
-                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
-                                                field.columnName,
-                                                field.columnType.name(),
-                                                value.getClass().toString());
-                                    } else {
-                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
-                                                field.columnName,
-                                                field.columnType.name());
-
-                                    }
+//                                    if (value != null) {
+//                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
+//                                                field.columnName,
+//                                                field.columnType.name(),
+//                                                value.getClass().getName());
+//                                    } else {
+//                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
+//                                                field.columnName,
+//                                                field.columnType.name());
+//
+//                                    }
                                     if (field.isPrimary) {
                                         assert value != null;
 
@@ -204,17 +202,17 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                         continue;
                                     }
                                     Serializable value = values[i];
-                                    if (value != null) {
-                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
-                                                field.columnName,
-                                                field.columnType.name(),
-                                                value.getClass().toString());
-                                    } else {
-                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
-                                                field.columnName,
-                                                field.columnType.name());
-
-                                    }
+//                                    if (value != null) {
+//                                        System.out.printf("field name:%s , type: %s , actual value type %s%n:",
+//                                                field.columnName,
+//                                                field.columnType.name(),
+//                                                value.getClass().getName());
+//                                    } else {
+//                                        System.out.printf("field name:%s , type: %s , actual value null%n:",
+//                                                field.columnName,
+//                                                field.columnType.name());
+//
+//                                    }
                                     if (field.isPrimary) {
                                         assert value != null;
                                         uuidBuilder.addValue(value.toString());
@@ -292,28 +290,125 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         }
     }
 
+
+    private String transByteArrToStr(Serializable value) {
+        byte[] bytes = SerializationUtils.serialize(value);
+        return new String(bytes);
+    }
+
+    private Boolean checkTypes(String value) {
+        System.out.print(value+"\n");
+        List<String> idFields = new ArrayList<>(Arrays.asList(
+                "java.lang.String",
+                "java.lang.Byte",
+                "java.lang.Short",
+                "java.lang.Integer",
+                "java.lang.Long",
+                "java.lang.Float",
+                "java.lang.Double",
+                "java.lang.Double",
+                "java.lang.Character"
+        ));
+        System.out.print(idFields.contains(value)+"\n");
+        return idFields.contains(value);
+    }
+
     private SyncOperation.SyncItem buildItem(SchemaField field,
                                              Serializable oldValue,
                                              Serializable newValue,
                                              SyncOperation.OperationType operationType) {
 
-        //TODO: serializable logic
+        if(checkTypes(oldValue.getClass().getName()) && checkTypes(newValue.getClass().getName())){
+            return new SyncOperation.SyncItem<>(field.columnName,
+                    oldValue,
+                    newValue,
+                    field.columnType,
+                    field.isPrimary);
+        }
+
         switch (field.columnType) {
-            case CHAR:
+            case ENUM:
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue,
+                        newValue,
+                        field.columnType,
+                        field.isPrimary);
+
+            case DOUBLE:
+            case UNSIGNED_DOUBLE:
+            case DECIMAL:
+            case UNSIGNED_DECIMAL: {
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue,
+                        newValue,
+                        field.columnType,
+                        field.isPrimary);
+            }
+
+            case TINYTEXT:
+            case MEDIUMTEXT:
+            case LONGTEXT:
+            case TEXT: {
+                if (newValue.getClass().getName().equals("[B")) {
+                    newValue = transByteArrToStr(newValue);
+                }
+                if (oldValue.getClass().getName().equals("[B")) {
+                    oldValue = transByteArrToStr(oldValue);
+                }
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue,
+                        newValue,
+                        field.columnType,
+                        field.isPrimary);
+            }
+            case INT:
+            case UNSIGNED_INT:
+            case TINYINT:
+            case UNSIGNED_TINYINT:
+            case SMALLINT:
+            case UNSIGNED_SMALLINT:
+            case MEDIUMINT:
+            case UNSIGNED_MEDIUMINT:
+            case BIGINT:
+            case UNSIGNED_BIGINT: {
+                System.out.print(oldValue.getClass().getName()+"\n");
+                System.out.print(newValue.getClass().getName()+"\n");
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue,
+                        newValue,
+                        field.columnType,
+                        field.isPrimary);
+            }
+            case DATE:
+            case TIMESTAMP:
+            case DATETIME:
+            case TIME:
+            case YEAR: {
+                System.out.print(oldValue.getClass().getName()+"\n");
+                System.out.print(newValue.getClass().getName()+"\n");
+                return new SyncOperation.SyncItem<>(field.columnName,
+                        oldValue,
+                        newValue,
+                        field.columnType,
+                        field.isPrimary);
+            }
+            case JSON:
+            case VARCHAR:
+            case CHAR: {
+                System.out.print(oldValue.getClass().getName()+"\n");
+                System.out.print(newValue.getClass().getName()+"\n");
                 return new SyncOperation.SyncItem<>(field.columnName,
                         oldValue.toString(),
                         newValue.toString(),
                         field.columnType,
                         field.isPrimary);
+
+            }
+            default:{
+                throw new IllegalArgumentException("Can't parse Illegal ColumnType");
+            }
         }
-
-        return new SyncOperation.SyncItem<>(field.columnName,
-                oldValue,
-                newValue,
-                field.columnType,
-                field.isPrimary);
     }
-
 
     @Override
     public boolean shouldFilterMessage(ClusterMessage message) {

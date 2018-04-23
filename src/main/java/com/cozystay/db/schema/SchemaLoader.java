@@ -62,7 +62,7 @@ public class SchemaLoader {
                             String columnName = columnResultSet.getString("COLUMN_NAME");
                             String columnType = columnResultSet.getString("DATA_TYPE");
                             String typeName = columnResultSet.getString("TYPE_NAME");
-                            System.out.printf("%s %s %s%n", columnName, columnType, typeName);
+                            System.out.printf("%s %s %s %s %s %n", columnName, columnType, typeName, dbName, tableName);
                             if (indexFields.contains(columnName)) {
                                 table.addField(new SchemaField(columnName, typeName, index, true));
                             } else {
@@ -78,6 +78,7 @@ public class SchemaLoader {
         } finally {
             try {
                 if (connection != null && !connection.isClosed()) {
+                    System.out.print("load completed");
                     connection.close();
                 }
             } catch (SQLException e) {
