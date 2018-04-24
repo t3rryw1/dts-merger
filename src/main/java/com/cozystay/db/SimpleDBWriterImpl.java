@@ -5,6 +5,7 @@ import com.cozystay.model.SyncOperation;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class SimpleDBWriterImpl implements Writer {
     private final String address;
@@ -23,6 +24,7 @@ public class SimpleDBWriterImpl implements Writer {
     @Override
     public void write(SyncOperation operation) {
         Connection conn = null;
+        Statement statement = null;
         try {
             conn = DriverManager.getConnection(
                     String.format("jdbc:mysql://%s:%d/%s?user=%s&password=%s",
@@ -32,12 +34,16 @@ public class SimpleDBWriterImpl implements Writer {
                             this.user,
                             this.password));
 
-            //TODO: sql to write data
+            statement = conn.createStatement();
+            statement.execute(operation.buildSql());
 
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             try {
+                if (statement != null && !statement.isClosed()) {
+                    statement.close();
+                }
                 if (conn != null && !conn.isClosed()) {
                     conn.close();
                 }
