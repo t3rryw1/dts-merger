@@ -40,6 +40,9 @@ public class SchemaLoader {
             try (ResultSet tableResultSet = metaData.getTables(null, "public", "%", new String[]{"TABLE"})) {
                 while (tableResultSet.next()) {
                     String dbName = tableResultSet.getString(1);
+                    if(collection.isFilteredDB(dbName)){
+                        continue;
+                    }
                     SchemaDatabase database;
                     if (databaseMap.containsKey(dbName)) {
                         database = databaseMap.get(dbName);
@@ -48,6 +51,10 @@ public class SchemaLoader {
                         databaseMap.put(dbName, database);
                     }
                     String tableName = tableResultSet.getString(3);
+                    if(collection.isFilteredTable(dbName,tableName)){
+                        continue;
+                    }
+
                     SchemaTable table = new SchemaTable(tableName, "UTF-8");
                     database.addTable(tableName, table);
 

@@ -1,7 +1,6 @@
 package com.cozystay.db.schema;
 
 import com.cozystay.SyncMain;
-import com.cozystay.db.schema.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncOperationImpl;
 import com.cozystay.model.SyncTask;
@@ -24,7 +23,7 @@ public class TestSchemaRuleCollection {
 
     @Test
     public void testLoadNormalString() {
-        SchemaRuleCollection.FilterRule rule = SchemaRuleCollection.parseFilter("galaxy.listings.updated_at");
+        SchemaRuleCollection.FilterRule rule = SchemaRuleCollection.parseFieldFilter("galaxy.listings.updated_at");
         Assert.assertEquals(rule.getDatabaseName(), "galaxy");
         Assert.assertEquals(rule.getTableName(), "listings");
         Assert.assertEquals(rule.getFieldName(), "updated_at");
@@ -34,18 +33,18 @@ public class TestSchemaRuleCollection {
     public void testLoadIllegalString() {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Wrong filter format, *.updated_at not following db.table.field format");
-        SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFilter("*.updated_at");
+        SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFieldFilter("*.updated_at");
     }
 
 
     @Test
     public void testLoadWildcardString() {
-        SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFilter("*.*.updated_at");
+        SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFieldFilter("*.*.updated_at");
         Assert.assertNull(rule1.getDatabaseName());
         Assert.assertNull(rule1.getTableName());
         Assert.assertEquals(rule1.getFieldName(), "updated_at");
 
-        SchemaRuleCollection.FilterRule rule2 = SchemaRuleCollection.parseFilter("galaxy_eadu.*.updated_at");
+        SchemaRuleCollection.FilterRule rule2 = SchemaRuleCollection.parseFieldFilter("galaxy_eadu.*.updated_at");
         Assert.assertEquals(rule2.getDatabaseName(), "galaxy_eadu");
         Assert.assertNull(rule2.getTableName());
         Assert.assertEquals(rule2.getFieldName(), "updated_at");
@@ -85,8 +84,8 @@ public class TestSchemaRuleCollection {
 
     @Test
     public void testMatchSyncItem(){
-        SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFilter("galaxy_eadu.calendar.user_notes");
-        SchemaRuleCollection.FilterRule rule2 = SchemaRuleCollection.parseFilter("*.*.updated_at");
+        SchemaRuleCollection.FilterRule rule1 = SchemaRuleCollection.parseFieldFilter("galaxy_eadu.calendar.user_notes");
+        SchemaRuleCollection.FilterRule rule2 = SchemaRuleCollection.parseFieldFilter("*.*.updated_at");
         SyncOperation operation = buildOperationWithTwoItems("galaxy_eadu",
                 "calendar",
                 "user_notes",

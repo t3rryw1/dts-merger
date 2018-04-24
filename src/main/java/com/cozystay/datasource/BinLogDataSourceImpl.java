@@ -13,7 +13,6 @@ import com.cozystay.model.SyncTaskBuilder;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
-import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -61,6 +60,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         writer = new SimpleDBWriterImpl(dbAddress, dbPort, dbUser, dbPassword);
 
         client = new BinaryLogClient(dbAddress, dbPort, dbUser, dbPassword);
+        SyncTaskBuilder.addSource(subscribeInstanceID);
 
     }
 
@@ -108,6 +108,9 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                             builder.setOperationTime(new Date(event.getHeader().getTimestamp()));
                             UuidBuilder uuidBuilder = new UuidBuilder();
                             SchemaTable table = schemaLoader.getTable(currentDB, currentTable);
+                        if (table == null) {
+                            break;
+                        }
 
                             switch (event.getHeader().getEventType()) {
                                 case UPDATE_ROWS: {
