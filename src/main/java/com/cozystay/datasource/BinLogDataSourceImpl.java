@@ -293,6 +293,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         });
         try {
             client.setEventDeserializer(eventDeserializer);
+            client.setConnectTimeout(10000);
+            client.setKeepAliveConnectTimeout(10000);
             client.connect();
         } catch (IOException e) {
             e.printStackTrace();

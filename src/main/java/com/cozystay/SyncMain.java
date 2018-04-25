@@ -1,7 +1,6 @@
 package com.cozystay;
 
 import com.cozystay.datasource.BinLogDataSourceImpl;
-import com.cozystay.datasource.DTSDataSourceImpl;
 import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
@@ -22,10 +21,10 @@ public class SyncMain {
 
     public static void main(String[] args) throws Exception {
         System.out.print("DB Sync runner launched");
-        Properties prop = new Properties();
+        final Properties prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
-        System.out.printf("Running with %d threads%n",threadNumber);
+        System.out.printf("Running with %d threads%n", threadNumber);
 
 
         final List<DataSource> dataSources = new ArrayList<>();
@@ -80,9 +79,9 @@ public class SyncMain {
 
 
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
+            final int currentIndex = i;
             try {
-
-                final DataSource source = new BinLogDataSourceImpl(prop, "db" + i) {
+                final DataSource source = new BinLogDataSourceImpl(prop, "db" + currentIndex) {
                     @Override
                     public void consumeData(SyncTask task) {
                         runner.addTask(task);
@@ -90,14 +89,23 @@ public class SyncMain {
                     }
 
                 };
-
-                source.start();
                 dataSources.add(source);
                 SyncTaskBuilder.addSource(source.getName());
 
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+
+                        source.start();
+
+
+                    }
+                };
+
+                new Thread(runnable).start();
 
             } catch (ParseException e) {
-                System.out.printf("Could not find DBConsumer%d, Running with %d consumers%n", i, i - 1);
+                System.out.printf("Could not find DBConsumer%d, Running with %d consumers%n", currentIndex, currentIndex - 1);
 
                 break;
             } catch (Exception e) {
@@ -108,7 +116,6 @@ public class SyncMain {
         }
 
         Thread.sleep(1000 * 60 * 24);
-
 
 
     }

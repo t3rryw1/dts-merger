@@ -35,7 +35,7 @@ public class SimpleDBWriterImpl implements Writer {
                             this.password));
 
             statement = conn.createStatement();
-            statement.execute(operation.buildSql());
+    //        statement.execute(operation.buildSql());
 
         } catch (SQLException e) {
             e.printStackTrace();

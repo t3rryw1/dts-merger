@@ -23,6 +23,9 @@ public class SchemaRuleCollection {
 
         nextItem:
         for (SyncOperation.SyncItem item : items) {
+            if (!item.hasChange()){
+                continue;
+            }
             for (FilterRule rule : filterRules) {
                 if (rule.match(item, operation.getTask())) {
                     continue nextItem;
@@ -73,7 +76,7 @@ public class SchemaRuleCollection {
     }
 
 
-    private static FilterRule parseFieldFilter(String str) {
+    static FilterRule parseFieldFilter(String str) {
         String[] res = str.split("\\.");
         if (res.length != 3) {
             throw new IllegalArgumentException(MessageFormat.format("Wrong filter format, {0} not following db.table.field format", str));
