@@ -13,12 +13,16 @@ import com.cozystay.model.SyncTaskBuilder;
 import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
+import redis.clients.jedis.Jedis;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
-import java.util.*;
+import java.util.BitSet;
+import java.util.Date;
+import java.util.Map;
+import java.util.Properties;
 
 public abstract class BinLogDataSourceImpl implements DataSource {
     private final SchemaRuleCollection schemaRuleCollection;
@@ -27,10 +31,16 @@ public abstract class BinLogDataSourceImpl implements DataSource {
 
     private String subscribeInstanceID;
     private SchemaLoader schemaLoader;
+    private Jedis redisClient;
 
     protected BinLogDataSourceImpl(Properties prop, String prefix) throws Exception {
-        String dbAddress, subscribeInstanceID, dbUser, dbPassword;
-        int dbPort;
+        String dbAddress,
+                subscribeInstanceID,
+                dbUser,
+                dbPassword,
+                redisHost,
+                redisPassword;
+        int dbPort, redisPort;
         if ((dbAddress = prop.getProperty(prefix + ".dbAddress")) == null) {
             throw new ParseException(prefix + ".dbAddress", 1);
         }
@@ -45,12 +55,27 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         }
 
         if ((subscribeInstanceID = prop.getProperty(prefix + ".subscribeInstanceID")) == null) {
-            throw new ParseException(prefix + ".subscribeInstanceID", 7);
+            throw new ParseException(prefix + ".subscribeInstanceID", 5);
         }
+
+        if ((redisHost = prop.getProperty("redis.host")) == null) {
+            throw new ParseException("redis.host", 6);
+        }
+
+        if ((redisPort = Integer.valueOf(prop.getProperty("redis.port"))) <= 0) {
+            throw new ParseException("redis.port", 7);
+        }
+        if ((redisPassword = prop.getProperty("redis.password")) == null) {
+            throw new ParseException("redis.password", 8);
+        }
+
 
         this.subscribeInstanceID = subscribeInstanceID;
         this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
         this.schemaLoader = new SchemaLoader(dbAddress, dbPort, dbUser, dbPassword);
+        this.redisClient = new Jedis(redisHost, redisPort, 0);
+
+        redisClient.auth(redisPassword);
 
 
         System.out.printf("Start BinLogDataSource using config: %s:%d, instance %s %n",
@@ -100,7 +125,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                     case UPDATE_ROWS:
                     case DELETE_ROWS:
                     case WRITE_ROWS: {
-                        try{
+                        try {
                             SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
                             builder.setSource(subscribeInstanceID);
                             builder.setTableName(currentTable);
@@ -108,9 +133,9 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                             builder.setOperationTime(new Date(event.getHeader().getTimestamp()));
                             UuidBuilder uuidBuilder = new UuidBuilder();
                             SchemaTable table = schemaLoader.getTable(currentDB, currentTable);
-                        if (table == null) {
-                            break;
-                        }
+                            if (table == null) {
+                                break;
+                            }
 
                             switch (event.getHeader().getEventType()) {
                                 case UPDATE_ROWS: {
@@ -248,7 +273,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                             consumeData(task);
 
                             break;
-                        }catch (UnsupportedEncodingException e){
+                        } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                         }
 
@@ -271,7 +296,9 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 Long binlogPos = binaryLogClient.getBinlogPosition();
                 //todo: binlog location logics
 
-                System.out.printf("bin log position %s.%d%n", binaryLogClient.getBinlogFilename(), binlogPos);
+                System.out.printf("bin log position on connect %s.%d%n", binaryLogClient.getBinlogFilename(), binlogPos);
+                redisClient.set("binlogFile-" + subscribeInstanceID, binaryLogClient.getBinlogFilename());
+                redisClient.set("binlogPosition-" + subscribeInstanceID, String.valueOf(binlogPos));
 
 
             }
@@ -288,6 +315,11 @@ public abstract class BinLogDataSourceImpl implements DataSource {
 
             @Override
             public void onDisconnect(BinaryLogClient binaryLogClient) {
+                Long binlogPos = binaryLogClient.getBinlogPosition();
+
+                System.out.printf("bin log position on disconnect %s.%d%n", binaryLogClient.getBinlogFilename(), binlogPos);
+                redisClient.set("binlogFile-" + subscribeInstanceID, binaryLogClient.getBinlogFilename());
+                redisClient.set("binlogPosition-" + subscribeInstanceID, String.valueOf(binlogPos));
 
             }
         });
@@ -295,6 +327,18 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             client.setEventDeserializer(eventDeserializer);
             client.setConnectTimeout(10000);
             client.setKeepAliveConnectTimeout(10000);
+            String binlogFileName, binlogPosition;
+            if (
+                    (binlogFileName = redisClient.get("binlogFile-" + this.subscribeInstanceID))
+                            !=
+                            null
+                            &&
+                            (binlogPosition = redisClient.get("binlogPosition-" + this.subscribeInstanceID))
+                                    !=
+                                    null) {
+                client.setBinlogFilename(binlogFileName);
+                client.setBinlogPosition(Long.valueOf(binlogPosition));
+            }
             client.connect();
         } catch (IOException e) {
             e.printStackTrace();
@@ -322,13 +366,14 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         Boolean("java.lang.Boolean");
 
         private final String fullName;
+
         AllowType(String type) {
             fullName = type;
         }
     }
 
     private Boolean checkTypes(Serializable value, AllowType dataType) {
-        if(value == null) return true;
+        if (value == null) return true;
         return value.getClass().getName().equals(dataType.fullName);
     }
 
@@ -341,7 +386,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             case BIT:
             case BOOL:
             case BOOLEAN: {
-                if(checkTypes(oldValue,AllowType.Integer) && checkTypes(newValue,AllowType.Integer)){
+                if (checkTypes(oldValue, AllowType.Integer) && checkTypes(newValue, AllowType.Integer)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -352,7 +397,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             }
 
             case ENUM:
-                if(checkTypes(oldValue,AllowType.Integer) && checkTypes(newValue,AllowType.Integer)){
+                if (checkTypes(oldValue, AllowType.Integer) && checkTypes(newValue, AllowType.Integer)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -361,8 +406,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 }
                 break;
             case DOUBLE:
-            case UNSIGNED_DOUBLE:{
-                if(checkTypes(oldValue,AllowType.Double) && checkTypes(newValue,AllowType.Double)){
+            case UNSIGNED_DOUBLE: {
+                if (checkTypes(oldValue, AllowType.Double) && checkTypes(newValue, AllowType.Double)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -373,7 +418,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             }
             case DECIMAL:
             case UNSIGNED_DECIMAL: {
-                if(checkTypes(oldValue,AllowType.BigDecimal) && checkTypes(newValue,AllowType.BigDecimal)){
+                if (checkTypes(oldValue, AllowType.BigDecimal) && checkTypes(newValue, AllowType.BigDecimal)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -387,21 +432,21 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             case MEDIUMTEXT:
             case LONGTEXT:
             case TEXT: {
-                if(checkTypes(oldValue,AllowType.String) && checkTypes(newValue,AllowType.String)){
+                if (checkTypes(oldValue, AllowType.String) && checkTypes(newValue, AllowType.String)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
                             field.isPrimary);
-                }else{
+                } else {
                     if (newValue.getClass().getName().equals("[B")) {
                         newValue = transByteArrToStr((byte[]) newValue);
-                    }else {
+                    } else {
                         break;
                     }
                     if (oldValue.getClass().getName().equals("[B")) {
                         oldValue = transByteArrToStr((byte[]) oldValue);
-                    }else {
+                    } else {
                         break;
                     }
                     return new SyncOperation.SyncItem<>(field.columnName,
@@ -419,7 +464,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             case UNSIGNED_SMALLINT:
             case MEDIUMINT:
             case UNSIGNED_MEDIUMINT: {
-                if(checkTypes(oldValue,AllowType.Integer) && checkTypes(newValue,AllowType.Integer)){
+                if (checkTypes(oldValue, AllowType.Integer) && checkTypes(newValue, AllowType.Integer)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -430,7 +475,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             }
             case BIGINT:
             case UNSIGNED_BIGINT: {
-                if(checkTypes(oldValue,AllowType.Long) && checkTypes(newValue,AllowType.Long)){
+                if (checkTypes(oldValue, AllowType.Long) && checkTypes(newValue, AllowType.Long)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -440,7 +485,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 break;
             }
             case DATE: {
-                if(checkTypes(oldValue,AllowType.SqlDate) && checkTypes(newValue,AllowType.SqlDate)){
+                if (checkTypes(oldValue, AllowType.SqlDate) && checkTypes(newValue, AllowType.SqlDate)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -449,8 +494,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 }
                 break;
             }
-            case DATETIME:{
-                if(checkTypes(oldValue,AllowType.UtilDate) && checkTypes(newValue,AllowType.UtilDate)){
+            case DATETIME: {
+                if (checkTypes(oldValue, AllowType.UtilDate) && checkTypes(newValue, AllowType.UtilDate)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -461,7 +506,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             }
             case TIME:
             case YEAR: {
-                if(checkTypes(oldValue,AllowType.SqlDate) && checkTypes(newValue,AllowType.SqlDate)){
+                if (checkTypes(oldValue, AllowType.SqlDate) && checkTypes(newValue, AllowType.SqlDate)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -470,8 +515,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 }
                 break;
             }
-            case TIMESTAMP:{
-                if(checkTypes(oldValue,AllowType.TimeStamp) && checkTypes(newValue,AllowType.TimeStamp)){
+            case TIMESTAMP: {
+                if (checkTypes(oldValue, AllowType.TimeStamp) && checkTypes(newValue, AllowType.TimeStamp)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
@@ -482,7 +527,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             }
             case VARCHAR:
             case CHAR: {
-                if(checkTypes(oldValue,AllowType.String) && checkTypes(newValue,AllowType.String)){
+                if (checkTypes(oldValue, AllowType.String) && checkTypes(newValue, AllowType.String)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,

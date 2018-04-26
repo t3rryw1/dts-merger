@@ -28,7 +28,20 @@ public class SyncMain {
 
 
         final List<DataSource> dataSources = new ArrayList<>();
-        final ProcessedTaskPool pool = new SimpleProcessedTaskPool();
+        String redisHost;
+        if ((redisHost = prop.getProperty("redis.host")) == null) {
+            throw new ParseException("redis.host", 6);
+        }
+
+        Integer redisPort;
+        if ((redisPort = Integer.valueOf(prop.getProperty("redis.port"))) <= 0) {
+            throw new ParseException("redis.port", 7);
+        }
+        String redisPassword;
+        if ((redisPassword = prop.getProperty("redis.password")) == null) {
+            throw new ParseException("redis.password", 8);
+        }
+        final ProcessedTaskPool pool = new SimpleProcessedTaskPool(redisHost, redisPort, redisPassword);
 
 
         final TaskRunner runner = new SimpleTaskRunnerImpl(1, threadNumber) {
