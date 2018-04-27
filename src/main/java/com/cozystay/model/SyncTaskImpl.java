@@ -15,6 +15,13 @@ public class SyncTaskImpl implements SyncTask {
 
     private final List<SyncOperation> operations;
 
+    SyncTaskImpl(){
+
+        database = null;
+        tableName = null;
+        uuid = null;
+        operations =new LinkedList<>();
+    }
 
     public SyncTaskImpl(
             String uuid,

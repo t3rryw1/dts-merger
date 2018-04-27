@@ -7,6 +7,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
 import java.io.ByteArrayOutputStream;
@@ -21,8 +22,13 @@ public class SimpleProcessedTaskPool implements ProcessedTaskPool {
 
 
     public SimpleProcessedTaskPool(String host, int port, String password) {
-        redisClient = new Jedis(host, port);
-        redisClient.auth(password);
+        JedisPool jedisPool = new JedisPool(host, port);
+
+        redisClient = jedisPool.getResource();
+        if(!password.equals("")){
+            redisClient.auth(password);
+
+        }
         kryo = new Kryo();
         kryo.register(SyncTaskImpl.class);
         kryo.register(SyncOperationImpl.class);

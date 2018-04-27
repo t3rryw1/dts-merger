@@ -14,6 +14,7 @@ import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.*;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -23,6 +24,7 @@ import java.util.BitSet;
 import java.util.Date;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeoutException;
 
 public abstract class BinLogDataSourceImpl implements DataSource {
     private final SchemaRuleCollection schemaRuleCollection;
@@ -73,10 +75,13 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         this.subscribeInstanceID = subscribeInstanceID;
         this.schemaRuleCollection = SchemaRuleCollection.loadRules(prop);
         this.schemaLoader = new SchemaLoader(dbAddress, dbPort, dbUser, dbPassword);
-        this.redisClient = new Jedis(redisHost, redisPort, 0);
+        JedisPool jedisPool = new JedisPool(redisHost, redisPort);
 
-        redisClient.auth(redisPassword);
+        redisClient = jedisPool.getResource();
+        if(!redisPassword.equals("")){
+            redisClient.auth(redisPassword);
 
+        }
 
         System.out.printf("Start BinLogDataSource using config: %s:%d, instance %s %n",
                 dbAddress,
@@ -339,8 +344,10 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 client.setBinlogFilename(binlogFileName);
                 client.setBinlogPosition(Long.valueOf(binlogPosition));
             }
-            client.connect();
+            client.connect(10000);
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
             e.printStackTrace();
         }
     }

@@ -12,6 +12,14 @@ public class SyncOperationImpl implements SyncOperation {
     private final Map<String, SyncStatus> syncStatusMap;
     private final Date operationTime;
 
+    SyncOperationImpl(){
+
+        operationType = null;
+        syncItems = new ArrayList<>();
+        syncStatusMap = new HashMap<>();
+        operationTime = null;
+    }
+
     public SyncOperationImpl(SyncTask task,
                              OperationType operationType,
                              List<SyncItem> syncItems,

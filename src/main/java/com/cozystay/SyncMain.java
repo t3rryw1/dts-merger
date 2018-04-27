@@ -9,6 +9,8 @@ import com.cozystay.structure.ProcessedTaskPool;
 import com.cozystay.structure.SimpleProcessedTaskPool;
 import com.cozystay.structure.SimpleTaskRunnerImpl;
 import com.cozystay.structure.TaskRunner;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -84,7 +86,9 @@ public class SyncMain {
                             }
                         }
                     }
-                    pool.add(toProcess);
+                    if (!toProcess.allOperationsCompleted()) {
+                        pool.add(toProcess);
+                    }
                 }
             }
         };
@@ -105,17 +109,9 @@ public class SyncMain {
                 dataSources.add(source);
                 SyncTaskBuilder.addSource(source.getName());
 
-                Runnable runnable = new Runnable() {
-                    @Override
-                    public void run() {
 
-                        source.start();
+                source.start();
 
-
-                    }
-                };
-
-                new Thread(runnable).start();
 
             } catch (ParseException e) {
                 System.out.printf("Could not find DBConsumer%d, Running with %d consumers%n", currentIndex, currentIndex - 1);
@@ -127,9 +123,27 @@ public class SyncMain {
 
 
         }
+        Signal.handle(new Signal("INT"), new SignalHandler() {
+            // Signal handler method for kill -INT command
 
-        Thread.sleep(1000 * 60 * 24);
+            public void handle(Signal signal) {
+                for (DataSource source : dataSources) {
+                    System.out.println("stop source " + source.getName());
+                    source.stop();
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }finally {
+                    System.exit(130);
 
+                }
+            }
+        });
+
+
+//        Thread.sleep(1000 * 60 * 24);
 
     }
 }

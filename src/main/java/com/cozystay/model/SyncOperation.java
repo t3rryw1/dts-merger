@@ -62,6 +62,17 @@ public interface SyncOperation {
         public final boolean isIndex;
         public final ColumnType fieldType;
 
+        SyncItem(){
+
+            fieldName = null;
+
+            originValue = null;
+            currentValue = null;
+
+            isIndex = false;
+            fieldType = null;
+        }
+
         public SyncItem(String fieldName,
                         T originValue,
                         T currentValue,
