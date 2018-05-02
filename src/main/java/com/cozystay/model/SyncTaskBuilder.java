@@ -25,7 +25,9 @@ public class SyncTaskBuilder {
     }
 
     public void addItem(SyncOperation.SyncItem newItem) {
-        this.items.add(newItem);
+        if(!this.items.contains(newItem)){
+            this.items.add(newItem);
+        }
     }
 
     public void setUuid(String uuid) {
