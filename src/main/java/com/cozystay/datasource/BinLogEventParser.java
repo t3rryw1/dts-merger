@@ -16,6 +16,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.BitSet;
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 
 class BinLogEventParser {
     SyncTask parseTask(Event event,
@@ -61,8 +62,7 @@ class BinLogEventParser {
                                 SyncOperation.OperationType.UPDATE);
                         if (item.isIndex) {
                             builder.addItem(item);
-                        }
-                        if (item.hasChange()) {
+                        } else if (item.hasChange()) {
                             builder.addItem(item);
                         }
                     }
@@ -91,8 +91,7 @@ class BinLogEventParser {
                                 SyncOperation.OperationType.DELETE);
                         if (item.isIndex) {
                             builder.addItem(item);
-                        }
-                        if (item.hasChange()) {
+                        } else if (item.hasChange()) {
                             builder.addItem(item);
                         }
                     }
@@ -120,8 +119,7 @@ class BinLogEventParser {
                                 SyncOperation.OperationType.CREATE);
                         if (item.isIndex) {
                             builder.addItem(item);
-                        }
-                        if (item.hasChange()) {
+                        } else if (item.hasChange()) {
                             builder.addItem(item);
                         }
                     }
@@ -129,9 +127,8 @@ class BinLogEventParser {
                 }
             }
             builder.setUuid(uuidBuilder.build());
-            SyncTask task = builder.build();
 
-            return task;
+            return builder.build();
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             return null;
@@ -146,7 +143,7 @@ class BinLogEventParser {
                                              SyncOperation.OperationType operationType)
             throws UnsupportedEncodingException {
 
-        switch (field.columnType) {
+        switch (Objects.requireNonNull(field.columnType)) {
             case BIT:
             case BOOL:
             case BOOLEAN: {
