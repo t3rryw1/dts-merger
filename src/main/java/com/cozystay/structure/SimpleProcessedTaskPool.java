@@ -52,4 +52,9 @@ public class SimpleProcessedTaskPool implements ProcessedTaskPool {
     public SyncTask get(String taskId) {
         return taskMap.get(taskId);
     }
+
+    @Override
+    public void destroy() {
+
+    }
 }

@@ -189,7 +189,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
         System.out.println(operationReplaceWithMultiItems.buildSql());
-        Assert.assertEquals(operationReplaceWithMultiItems.buildSql(), String.format("UPDATE %s SET ( %s = '%s' ,  description = '%s' ) WHERE  %s = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
+        Assert.assertEquals(operationReplaceWithMultiItems.buildSql(), String.format("UPDATE %s SET  %s = '%s' ,  description = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
 
         SyncOperation operationUpdateWithMultiItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,
@@ -197,7 +197,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUpdateWithMultiItems.buildSql(), String.format("UPDATE %s SET ( %s = '%s' ,  description = '%s' ) WHERE  %s = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
+        Assert.assertEquals(operationUpdateWithMultiItems.buildSql(), String.format("UPDATE %s SET  %s = '%s' ,  description = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
 
         SyncOperation operationUpdateWithoutIndexItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,
@@ -213,7 +213,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUpdateWithMultiIndexItems.buildSql(), String.format("UPDATE %s SET ( %s = '%s' ,  %s = '%s' ) WHERE  %s = '%s'  and  %s = '%s' ;", tableName, indexFieldName1, currentValue, indexFieldName2, currentValue, indexFieldName1, originValue, indexFieldName2, originValue));
+        Assert.assertEquals(operationUpdateWithMultiIndexItems.buildSql(), String.format("UPDATE %s SET  %s = '%s' ,  %s = '%s'  WHERE  %s = '%s'  and  %s = '%s' ;", tableName, indexFieldName1, currentValue, indexFieldName2, currentValue, indexFieldName1, originValue, indexFieldName2, originValue));
     }
 
 

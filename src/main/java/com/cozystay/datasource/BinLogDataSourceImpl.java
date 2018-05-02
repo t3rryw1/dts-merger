@@ -89,6 +89,11 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     @Override
+    public void init() {
+        schemaLoader.loadDBSchema(schemaRuleCollection);
+    }
+
+    @Override
     public String getName() {
         return this.subscribeInstanceID;
     }
@@ -100,7 +105,6 @@ public abstract class BinLogDataSourceImpl implements DataSource {
 
     @Override
     public void start() {
-        schemaLoader.loadDBSchema(schemaRuleCollection);
         EventDeserializer eventDeserializer = new EventDeserializer();
         client.registerEventListener(new BinaryLogClient.EventListener() {
             private String currentTable;
@@ -213,12 +217,6 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         } catch (TimeoutException e) {
             e.printStackTrace();
         }
-    }
-
-
-    @Override
-    public boolean shouldFilterMessage(ClusterMessage message) {
-        return false;
     }
 
     @Override

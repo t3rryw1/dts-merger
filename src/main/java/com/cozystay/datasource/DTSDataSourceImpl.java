@@ -73,6 +73,11 @@ public abstract class DTSDataSourceImpl implements DataSource {
     }
 
     @Override
+    public void init(){
+
+    }
+
+    @Override
     public void writeDB(SyncOperation operation) {
         this.writer.write(operation);
     }
@@ -92,9 +97,6 @@ public abstract class DTSDataSourceImpl implements DataSource {
                 for (ClusterMessage message : messages) {
 
                     try {
-                        if (shouldFilterMessage(message)) {
-                            continue;
-                        }
                         SyncTask task = DTSMessageParser.parseMessage(message, subscribeInstanceID, schemaRuleCollection);
                         if (task != null) {
                             consumeData(task);

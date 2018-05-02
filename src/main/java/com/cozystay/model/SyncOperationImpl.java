@@ -3,6 +3,7 @@ package com.cozystay.model;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 public class SyncOperationImpl implements SyncOperation {
@@ -12,7 +13,7 @@ public class SyncOperationImpl implements SyncOperation {
     private final Map<String, SyncStatus> syncStatusMap;
     private final Date operationTime;
 
-    SyncOperationImpl(){
+    SyncOperationImpl() {
 
         operationType = null;
         syncItems = new ArrayList<>();
@@ -43,7 +44,13 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
-    public String toString() { return "operationType: " + this.getOperationType() + "status: " + this.getSyncStatus().toString() + "; sql: " + this.buildSql() + "time: " + this.getTime();}
+    public String toString() {
+        return String.format("operationType: %s; status: %s; sql: %s time: %s",
+                this.getOperationType(),
+                this.getSyncStatus().toString(),
+                this.buildSql(),
+                this.getTime());
+    }
 
     @Override
     public SyncTask getTask() {
@@ -93,13 +100,27 @@ public class SyncOperationImpl implements SyncOperation {
             case UPDATE:
             case REPLACE:
                 conditionString = getConditionString();
+                if (conditionString.equals("")) {
+                    return "";
+                }
                 List<String> operations = new ArrayList<>();
                 for (SyncItem item : getSyncItems()) {
                     if (item.currentValue.equals(item.originValue)) {
                         continue;
                     }
 
-                    if (item.currentValue instanceof Integer || item.currentValue instanceof Double) {
+                    if (item.currentValue instanceof Integer
+                            ||
+                            item.currentValue instanceof Double
+                            ||
+                            item.currentValue instanceof BigDecimal
+                            ||
+                            item.currentValue instanceof Short
+                            ||
+                            item.currentValue instanceof Long
+                            ||
+                            item.currentValue instanceof Float
+                            ) {
                         operations.add(String.format(" %s = %s ", item.fieldName, item.currentValue.toString()));
                     } else {
                         operations.add(String.format(" %s = '%s' ", item.fieldName, item.currentValue.toString()));
@@ -109,7 +130,7 @@ public class SyncOperationImpl implements SyncOperation {
                 }
                 String operationString = StringUtils.join(operations, ", ");
 
-                return String.format("UPDATE %s SET (%s) WHERE %s;", getTask().getTable(), operationString, conditionString);
+                return String.format("UPDATE %s SET %s WHERE %s;", getTask().getTable(), operationString, conditionString);
 
         }
         return null;

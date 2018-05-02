@@ -27,15 +27,15 @@ public class SimpleDBWriterImpl implements Writer {
         Statement statement = null;
         try {
             conn = DriverManager.getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?user=%s&password=%s",
+                    String.format("jdbc:mysql://%s:%d/%s",
                             this.address,
                             this.port,
-                            operation.getTask().getDatabase(),
-                            this.user,
-                            this.password));
+                            operation.getTask().getDatabase()),
+                    this.user,
+                    this.password);
 
             statement = conn.createStatement();
-    //        statement.execute(operation.buildSql());
+            statement.execute(operation.buildSql());
 
         } catch (SQLException e) {
             e.printStackTrace();

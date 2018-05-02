@@ -41,7 +41,9 @@ public class SyncTaskImpl implements SyncTask {
         for(SyncOperation operation : this.operations){
             operationStr = operationStr + "\n" + operation.toString();
         }
-        return "id: " + this.getId() + "; operations: " + operationStr;
+        return String.format("id: %s; operations: %s",
+                this.getId(),
+                operationStr);
     }
 
     @Override

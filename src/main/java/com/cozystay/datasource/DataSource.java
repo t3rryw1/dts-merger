@@ -15,7 +15,7 @@ public interface DataSource {
 
     void stop();
 
-    boolean shouldFilterMessage(ClusterMessage message);
+    void init();
 
     String getName();
 }
