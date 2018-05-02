@@ -6,7 +6,7 @@ import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
 import com.cozystay.structure.ProcessedTaskPool;
-import com.cozystay.structure.SimpleProcessedTaskPool;
+import com.cozystay.structure.RedisProcessedTaskPool;
 import com.cozystay.structure.SimpleTaskRunnerImpl;
 import com.cozystay.structure.TaskRunner;
 import sun.misc.Signal;
@@ -20,6 +20,7 @@ import java.util.Properties;
 public class SyncMain {
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
+    final static List<DataSource> dataSources = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
         System.out.print("DB Sync runner launched");
@@ -29,7 +30,7 @@ public class SyncMain {
         System.out.printf("Running with %d threads%n", threadNumber);
 
 
-        final List<DataSource> dataSources = new ArrayList<>();
+
         String redisHost;
         if ((redisHost = prop.getProperty("redis.host")) == null) {
             throw new ParseException("redis.host", 6);
@@ -43,7 +44,7 @@ public class SyncMain {
         if ((redisPassword = prop.getProperty("redis.password")) == null) {
             throw new ParseException("redis.password", 8);
         }
-        final ProcessedTaskPool pool = new SimpleProcessedTaskPool(redisHost, redisPort, redisPassword);
+        final ProcessedTaskPool pool = new RedisProcessedTaskPool(redisHost, redisPort, redisPassword);
 
 
         final TaskRunner runner = new SimpleTaskRunnerImpl(1, threadNumber) {
@@ -123,27 +124,45 @@ public class SyncMain {
 
 
         }
+
+        Signal.handle(new Signal("TERM"), new SignalHandler() {
+            // Signal handler method for CTRL-C and simple kill command.
+            public void handle(Signal signal) {
+                SyncMain.onStop();
+            }
+        });
         Signal.handle(new Signal("INT"), new SignalHandler() {
             // Signal handler method for kill -INT command
 
             public void handle(Signal signal) {
-                for (DataSource source : dataSources) {
-                    System.out.println("stop source " + source.getName());
-                    source.stop();
-                }
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }finally {
-                    System.exit(130);
+                SyncMain.onStop();
+            }
+        });
 
-                }
+        Signal.handle(new Signal("HUP"), new SignalHandler() {
+            // Signal handler method for kill -HUP command
+            public void handle(Signal signal) {
+                SyncMain.onStop();
             }
         });
 
 
 //        Thread.sleep(1000 * 60 * 24);
 
+    }
+
+    private static void onStop(){
+        for (DataSource source : dataSources) {
+            System.out.println("stop source " + source.getName());
+            source.stop();
+        }
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }finally {
+            System.exit(130);
+
+        }
     }
 }

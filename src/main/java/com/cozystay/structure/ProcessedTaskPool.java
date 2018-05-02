@@ -15,4 +15,6 @@ public interface ProcessedTaskPool {
 
     SyncTask get(String taskId);
 
+    void destroy();
+
 }
