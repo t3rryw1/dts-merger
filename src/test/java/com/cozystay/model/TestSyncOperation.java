@@ -136,7 +136,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationREPLACE.buildSql(), String.format("UPDATE %s SET ( %s = '%s' ) WHERE  %s = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
+        Assert.assertEquals(operationREPLACE.buildSql(), String.format("UPDATE %s SET  %s = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
 
 
         SyncOperation operationUPDATE = new SyncOperationImpl( task,
@@ -145,7 +145,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUPDATE.buildSql(), String.format("UPDATE %s SET ( %s = '%s' ) WHERE  %s = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
+        Assert.assertEquals(operationUPDATE.buildSql(), String.format("UPDATE %s SET  %s = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
     }
 
     @Test

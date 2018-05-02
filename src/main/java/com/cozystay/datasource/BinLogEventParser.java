@@ -213,15 +213,19 @@ class BinLogEventParser {
                             field.columnType,
                             field.isPrimary);
                 } else {
-                    if (newValue.getClass().getName().equals("[B")) {
-                        newValue = transByteArrToStr((byte[]) newValue);
-                    } else {
-                        break;
+                    if (newValue != null) {
+                        if (newValue.getClass().getName().equals("[B")) {
+                            newValue = transByteArrToStr((byte[]) newValue);
+                        } else {
+                            break;
+                        }
                     }
-                    if (oldValue.getClass().getName().equals("[B")) {
-                        oldValue = transByteArrToStr((byte[]) oldValue);
-                    } else {
-                        break;
+                    if (oldValue != null) {
+                        if (oldValue.getClass().getName().equals("[B")) {
+                            oldValue = transByteArrToStr((byte[]) oldValue);
+                        } else {
+                            break;
+                        }
                     }
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
