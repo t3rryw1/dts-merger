@@ -9,13 +9,15 @@ public interface DataSource {
 
     void consumeData(SyncTask task);
 
-    void writeDB(SyncOperation operation);
+    boolean writeDB(SyncOperation operation);
 
     void start();
 
     void stop();
 
     void init();
+
+    boolean isRunning();
 
     String getName();
 }

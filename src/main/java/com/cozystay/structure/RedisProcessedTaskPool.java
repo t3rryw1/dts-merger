@@ -65,7 +65,7 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
-    public SyncTask poll() {
+    public synchronized SyncTask poll() {
         Set<String> keySet = redisClient.zrange(DATA_SET_KEY, 0, 0);
         if (keySet.isEmpty()) {
             return null;
@@ -78,7 +78,7 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
-    public SyncTask get(String taskId) {
+    public synchronized SyncTask get(String taskId) {
         byte[] taskBytes = redisClient.hget(DATA_HASH_KEY.getBytes(), taskId.getBytes());
         return decode(this.kryo, taskBytes);
     }

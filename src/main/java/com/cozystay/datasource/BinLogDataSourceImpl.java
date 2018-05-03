@@ -1,6 +1,5 @@
 package com.cozystay.datasource;
 
-import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.db.SimpleDBWriterImpl;
 import com.cozystay.db.Writer;
 import com.cozystay.db.schema.SchemaLoader;
@@ -12,6 +11,8 @@ import com.github.shyiko.mysql.binlog.BinaryLogClient;
 import com.github.shyiko.mysql.binlog.event.Event;
 import com.github.shyiko.mysql.binlog.event.TableMapEventData;
 import com.github.shyiko.mysql.binlog.event.deserialization.EventDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
@@ -21,6 +22,9 @@ import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
 public abstract class BinLogDataSourceImpl implements DataSource {
+
+    private static Logger logger = LoggerFactory.getLogger(BinLogDataSourceImpl.class);
+
     private final SchemaRuleCollection schemaRuleCollection;
     private final Writer writer;
     private final BinaryLogClient client;
@@ -28,6 +32,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     private String subscribeInstanceID;
     private SchemaLoader schemaLoader;
     private Jedis redisClient;
+    private boolean isReady = false;
 
     protected BinLogDataSourceImpl(Properties prop, String prefix) throws Exception {
         String dbAddress,
@@ -77,7 +82,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
 
         }
 
-        System.out.printf("Start BinLogDataSource using config: %s:%d, instance %s %n",
+        logger.info("Start BinLogDataSource using config: {}:{}, instance {}",
                 dbAddress,
                 dbPort,
                 subscribeInstanceID);
@@ -91,6 +96,12 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     @Override
     public void init() {
         schemaLoader.loadDBSchema(schemaRuleCollection);
+        isReady = true;
+    }
+
+    @Override
+    public boolean isRunning() {
+        return isReady;
     }
 
     @Override
@@ -99,8 +110,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     @Override
-    public void writeDB(SyncOperation operation) {
-        this.writer.write(operation);
+    public boolean writeDB(SyncOperation operation) {
+        return this.writer.write(operation);
     }
 
     @Override
@@ -153,9 +164,9 @@ public abstract class BinLogDataSourceImpl implements DataSource {
         });
 
         client.registerLifecycleListener(new BinaryLogClient.LifecycleListener() {
-            private void saveBinlog(BinaryLogClient binaryLogClient){
+            private void saveBinlog(BinaryLogClient binaryLogClient, String eventName) {
                 Long binlogPos = binaryLogClient.getBinlogPosition();
-                System.out.printf(" %s.%d%n", binaryLogClient.getBinlogFilename(), binlogPos);
+                logger.info("event: {}, last log point: {}.{}", eventName, binaryLogClient.getBinlogFilename(), binlogPos);
                 redisClient.set("binlogFile-" + subscribeInstanceID, binaryLogClient.getBinlogFilename());
                 redisClient.set("binlogPosition-" + subscribeInstanceID, String.valueOf(binlogPos));
 
@@ -163,35 +174,31 @@ public abstract class BinLogDataSourceImpl implements DataSource {
 
             @Override
             public void onConnect(BinaryLogClient binaryLogClient) {
-                System.out.printf("bin log position onConnect: ");
                 //binlog location logic
-                saveBinlog(binaryLogClient);
+                saveBinlog(binaryLogClient, "onConnect");
 
 
             }
 
             @Override
             public void onCommunicationFailure(BinaryLogClient binaryLogClient, Exception e) {
-                System.out.printf("bin log position onCommunicationFailure: ");
                 //binlog location logic
-                saveBinlog(binaryLogClient);
+                saveBinlog(binaryLogClient, "onCommunicationFailure");
 
             }
 
             @Override
             public void onEventDeserializationFailure(BinaryLogClient binaryLogClient, Exception e) {
-                System.out.printf("bin log position onEventDeserializationFailure: ");
                 //binlog location logic
-                saveBinlog(binaryLogClient);
+                saveBinlog(binaryLogClient, "onEventDeserializationFailure");
 
             }
 
             @Override
             public void onDisconnect(BinaryLogClient binaryLogClient) {
 
-                System.out.printf("bin log position onDisconnect: ");
                 //binlog location logic
-                saveBinlog(binaryLogClient);
+                saveBinlog(binaryLogClient, "onDisconnect");
 
             }
         });

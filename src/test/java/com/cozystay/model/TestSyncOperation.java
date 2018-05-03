@@ -205,7 +205,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUpdateWithoutIndexItems.buildSql(), "");
+        Assert.assertEquals(operationUpdateWithoutIndexItems.buildSql(), null);
 
         SyncOperation operationUpdateWithMultiIndexItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,

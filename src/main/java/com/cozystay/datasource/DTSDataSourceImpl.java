@@ -78,8 +78,14 @@ public abstract class DTSDataSourceImpl implements DataSource {
     }
 
     @Override
-    public void writeDB(SyncOperation operation) {
-        this.writer.write(operation);
+    public boolean isRunning() {
+        return false;
+    }
+
+    @Override
+    public boolean writeDB(SyncOperation operation) {
+        return this.writer.write(operation);
+
     }
 
     @Override

@@ -23,7 +23,7 @@ public class SchemaRuleCollection {
 
         nextItem:
         for (SyncOperation.SyncItem item : items) {
-            if (!item.hasChange()){
+            if (!item.hasChange()) {
                 continue;
             }
             for (FilterRule rule : filterRules) {
@@ -109,7 +109,11 @@ public class SchemaRuleCollection {
 
     boolean isFilteredTable(String dbName, String tableName) {
         for (Map.Entry<String, String> entry : filterTableRule) {
-            if (entry.getKey().equals(dbName) && entry.getValue().equals(tableName)) {
+            if ((entry.getKey().equals(dbName)
+                    ||
+                    entry.getKey().equals("*"))
+                    &&
+                    entry.getValue().equals(tableName)) {
                 return true;
             }
         }

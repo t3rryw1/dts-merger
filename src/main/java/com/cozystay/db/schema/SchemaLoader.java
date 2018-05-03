@@ -25,22 +25,25 @@ public class SchemaLoader {
     }
 
 
-    public SchemaTable getTable(String dbName, String tableName){
+    public SchemaTable getTable(String dbName, String tableName) {
         return this.databaseMap.get(dbName).getTable(tableName);
     }
 
     public void loadDBSchema(SchemaRuleCollection collection) {
-        String connString = String.format("jdbc:mysql://%s:%d/",
+        String connString = String.format("jdbc:mysql://%s:%d/?verifyServerCertificate=false&useSSL=true",
                 this.dbAddress,
                 this.dbPort);
         Connection connection = null;
         try {
             connection = DriverManager.getConnection(connString, dbUser, dbPassword);
             DatabaseMetaData metaData = connection.getMetaData();
-            try (ResultSet tableResultSet = metaData.getTables(null, "public", "%", new String[]{"TABLE"})) {
+            try (ResultSet tableResultSet = metaData.getTables(null,
+                    "public",
+                    "%",
+                    new String[]{"TABLE"})) {
                 while (tableResultSet.next()) {
                     String dbName = tableResultSet.getString(1);
-                    if(collection.isFilteredDB(dbName)){
+                    if (collection.isFilteredDB(dbName)) {
                         continue;
                     }
                     SchemaDatabase database;
@@ -51,7 +54,7 @@ public class SchemaLoader {
                         databaseMap.put(dbName, database);
                     }
                     String tableName = tableResultSet.getString(3);
-                    if(collection.isFilteredTable(dbName,tableName)){
+                    if (collection.isFilteredTable(dbName, tableName)) {
                         continue;
                     }
 
@@ -63,13 +66,21 @@ public class SchemaLoader {
                             dbName,
                             tableName);
 
-                    try (ResultSet columnResultSet = metaData.getColumns(null, "public", tableName, "%")) {
+                    try (ResultSet columnResultSet = metaData.getColumns(null,
+                            "public",
+                            tableName,
+                            "%")) {
                         int index = 1;
                         while (columnResultSet.next()) {
                             String columnName = columnResultSet.getString("COLUMN_NAME");
                             String columnType = columnResultSet.getString("DATA_TYPE");
                             String typeName = columnResultSet.getString("TYPE_NAME");
-                            System.out.printf("%s %s %s %s %s %n", columnName, columnType, typeName, dbName, tableName);
+                            System.out.printf("%s %s %s %s %s %n",
+                                    columnName,
+                                    columnType,
+                                    typeName,
+                                    dbName,
+                                    tableName);
                             if (indexFields.contains(columnName)) {
                                 table.addField(new SchemaField(columnName, typeName, index, true));
                             } else {

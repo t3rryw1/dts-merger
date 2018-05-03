@@ -1,6 +1,8 @@
 package com.cozystay.db;
 
 import com.cozystay.model.SyncOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -8,6 +10,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class SimpleDBWriterImpl implements Writer {
+
+    private static Logger logger = LoggerFactory.getLogger(SimpleDBWriterImpl.class);
+
     private final String address;
     private final int port;
     private final String user;
@@ -22,12 +27,12 @@ public class SimpleDBWriterImpl implements Writer {
     }
 
     @Override
-    public void write(SyncOperation operation) {
+    public boolean write(SyncOperation operation) {
         Connection conn = null;
         Statement statement = null;
         try {
             conn = DriverManager.getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true",
                             this.address,
                             this.port,
                             operation.getTask().getDatabase()),
@@ -35,10 +40,14 @@ public class SimpleDBWriterImpl implements Writer {
                     this.password);
 
             statement = conn.createStatement();
-            statement.execute(operation.buildSql());
+            String sql = operation.buildSql();
+            logger.info("executing sql {}", sql);
+            return sql != null && statement.execute(sql);
 
         } catch (SQLException e) {
+            logger.error(e.getMessage());
             e.printStackTrace();
+            return false;
         } finally {
             try {
                 if (statement != null && !statement.isClosed()) {

@@ -11,6 +11,8 @@ import com.cozystay.structure.TaskRunner;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.apache.commons.daemon.DaemonInitException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -19,20 +21,21 @@ import java.util.Properties;
 
 public class SyncDaemon implements Daemon {
 
+    private static Logger logger = LoggerFactory.getLogger(SyncDaemon.class);
 
-    TaskRunner runner;
-    Properties prop;
+    private TaskRunner runner;
+    private Properties prop;
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
-    final static List<DataSource> dataSources = new ArrayList<>();
+    private final static List<DataSource> dataSources = new ArrayList<>();
 
     @Override
     public void init(DaemonContext daemonContext) throws DaemonInitException, Exception {
-        System.out.print("DB Sync runner launched");
+        logger.info("DB Sync runner launched");
         prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
-        System.out.printf("Running with %d threads%n", threadNumber);
+        logger.info("Running with {} threads%n", threadNumber);
 
 
         String redisHost;
@@ -56,7 +59,7 @@ public class SyncDaemon implements Daemon {
             @Override
             public void addTask(SyncTask newRecord) {
                 synchronized (pool) {
-                    System.out.println("add new task: " + newRecord.toString());
+                    logger.info("add new task: {}" + newRecord.toString());
                     if (!pool.hasTask(newRecord)) {
                         pool.add(newRecord);
                         return;
@@ -80,17 +83,28 @@ public class SyncDaemon implements Daemon {
                     if (toProcess == null) {
                         return;
                     }
-                    System.out.println("work on task: " + toProcess.toString());
+                    logger.info("work on task: {}" + toProcess.toString());
 
                     for (DataSource source :
                             dataSources) {
+                        if (!source.isRunning()) {
+                            continue;
+                        }
                         for (SyncOperation operation : toProcess.getOperations()) {
                             if (operation.shouldSendToSource(source.getName())) {
-                                System.out.printf("write operation %s to source %s %n: ",
-                                        operation.toString(),
-                                        source.getName());
-                                source.writeDB(operation);
-                                operation.setSourceSend(source.getName());
+                                if (source.writeDB(operation)) {
+                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
+                                    logger.info("write operation {} to source {} succeed.",
+                                            operation.toString(),
+                                            source.getName());
+                                } else {
+                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
+                                    logger.error("write operation {} to source {} failed and skipped. ",
+                                            operation.toString(),
+                                            source.getName());
+
+
+                                }
                             }
                         }
                     }
@@ -115,7 +129,7 @@ public class SyncDaemon implements Daemon {
 
 
             } catch (ParseException e) {
-                System.out.printf("Could not find DBConsumer%d, Running with %d consumers%n", currentIndex, currentIndex - 1);
+                logger.info("Could not find DBConsumer {}, Running with {} consumers%n", currentIndex, currentIndex - 1);
 
                 break;
             } catch (Exception e) {
@@ -152,7 +166,7 @@ public class SyncDaemon implements Daemon {
             Thread.sleep(50);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             System.out.println("stopped sources ");
 
         }

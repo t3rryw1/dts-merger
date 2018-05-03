@@ -3,7 +3,6 @@ package com.cozystay.model;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 public class SyncOperationImpl implements SyncOperation {
@@ -12,6 +11,7 @@ public class SyncOperationImpl implements SyncOperation {
     private List<SyncItem> syncItems;
     private final Map<String, SyncStatus> syncStatusMap;
     private final Date operationTime;
+    private Object value;
 
     SyncOperationImpl() {
 
@@ -83,70 +83,69 @@ public class SyncOperationImpl implements SyncOperation {
         switch (getOperationType()) {
             case DELETE:
                 String conditionString = getConditionString();
+                if (conditionString == null) {
+                    return null;
+                }
                 return String.format("DELETE FROM %s WHERE %s;", getTask().getTable(), conditionString);
             case CREATE:
                 List<String> keys = new ArrayList<>(), values = new ArrayList<>();
                 for (SyncItem item : getSyncItems()) {
-                    keys.add(item.fieldName);
-                    if (item.currentValue instanceof Integer || item.currentValue instanceof Double) {
-                        values.add(item.currentValue.toString());
-                    } else {
-                        values.add("'" + item.currentValue.toString() + "'");
+                    if (item.currentValue != null) {
+                        keys.add(item.fieldName);
+                        values.add(item.currentValueToString());
                     }
                 }
-                String keyString = StringUtils.join(keys, ", ");
-                String valueString = StringUtils.join(values, ", ");
-                return String.format("INSERT INTO %s (%s) VALUES (%s);", getTask().getTable(), keyString, valueString);
+                if (values.size() == 0) {
+                    return null;
+                }
+                return String.format("INSERT INTO %s (%s) VALUES (%s);",
+                        getTask().getTable(),
+                        StringUtils.join(keys, ", "),
+                        StringUtils.join(values, ", "));
             case UPDATE:
             case REPLACE:
                 conditionString = getConditionString();
-                if (conditionString.equals("")) {
-                    return "";
+                if (conditionString == null) {
+                    return null;
                 }
                 List<String> operations = new ArrayList<>();
                 for (SyncItem item : getSyncItems()) {
-                    if (item.currentValue.equals(item.originValue)) {
+                    if (!item.hasChange()) {
                         continue;
                     }
-
-                    if (item.currentValue instanceof Integer
-                            ||
-                            item.currentValue instanceof Double
-                            ||
-                            item.currentValue instanceof BigDecimal
-                            ||
-                            item.currentValue instanceof Short
-                            ||
-                            item.currentValue instanceof Long
-                            ||
-                            item.currentValue instanceof Float
-                            ) {
-                        operations.add(String.format(" %s = %s ", item.fieldName, item.currentValue.toString()));
+                    if (item.currentValue == null) {
+                        operations.add(String.format(" %s = %s ", item.fieldName, "NULL"));
                     } else {
-                        operations.add(String.format(" %s = '%s' ", item.fieldName, item.currentValue.toString()));
+                        operations.add(String.format(" %s = %s ", item.fieldName, item.currentValueToString()));
 
                     }
-
                 }
-                String operationString = StringUtils.join(operations, ", ");
-
-                return String.format("UPDATE %s SET %s WHERE %s;", getTask().getTable(), operationString, conditionString);
+                if (operations.size() == 0) {
+                    return null;
+                }
+                return String.format("UPDATE %s SET %s WHERE %s;",
+                        getTask().getTable(),
+                        StringUtils.join(operations, ", "),
+                        conditionString);
 
         }
         return null;
     }
 
+
     private String getConditionString() {
         List<String> conditions = new ArrayList<>();
         for (SyncItem item : getSyncItems()) {
-            if (item.isIndex) {
-                if (item.originValue instanceof Integer || item.originValue instanceof Double) {
-                    conditions.add(String.format(" %s = %s ", item.fieldName, item.originValue));
-                } else {
-                    conditions.add(String.format(" %s = '%s' ", item.fieldName, item.originValue.toString()));
-
-                }
+            if (!item.isIndex) {
+                continue;
             }
+            if (item.originValue == null) {
+                return null;
+            }
+            conditions.add(String.format(" %s = %s ", item.fieldName, item.originValueToString()));
+        }
+        if (conditions.size() == 0) {
+            return null;
         }
         return StringUtils.join(conditions.toArray(), " and ");
     }

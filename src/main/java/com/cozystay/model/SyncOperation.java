@@ -3,6 +3,8 @@ package com.cozystay.model;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -55,14 +57,14 @@ public interface SyncOperation {
         DELETE
     }
 
-    class SyncItem<T> {
+    class SyncItem<T > {
         public final String fieldName;
         public final T originValue;
         public final T currentValue;
         public final boolean isIndex;
         public final ColumnType fieldType;
 
-        SyncItem(){
+        SyncItem() {
 
             fieldName = null;
 
@@ -109,6 +111,50 @@ public interface SyncOperation {
                     .append(fieldType)
                     .append(isIndex)
                     .toHashCode();
+        }
+
+        String originValueToString() {
+            if (originValue == null) {
+                return null;
+            }
+            if (originValue instanceof Integer
+                    ||
+                    originValue instanceof Double
+                    ||
+                    originValue instanceof BigDecimal
+                    ||
+                    originValue instanceof Short
+                    ||
+                    originValue instanceof Long
+                    ||
+                    originValue instanceof Float
+                    ) {
+                return originValue.toString();
+            } else {
+                return "'" + originValue.toString() + "'";
+            }
+        }
+
+        String currentValueToString() {
+            if (currentValue == null) {
+                return null;
+            }
+            if (currentValue instanceof Integer
+                    ||
+                    currentValue instanceof Double
+                    ||
+                    currentValue instanceof BigDecimal
+                    ||
+                    currentValue instanceof Short
+                    ||
+                    currentValue instanceof Long
+                    ||
+                    currentValue instanceof Float
+                    ) {
+                return currentValue.toString();
+            } else {
+                return "'" + currentValue.toString() + "'";
+            }
         }
 
 
