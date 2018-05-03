@@ -11,7 +11,7 @@ public class SyncOperationImpl implements SyncOperation {
     private List<SyncItem> syncItems;
     private final Map<String, SyncStatus> syncStatusMap;
     private final Date operationTime;
-    private Object value;
+
 
     SyncOperationImpl() {
 

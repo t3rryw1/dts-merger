@@ -128,9 +128,6 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 switch (event.getHeader().getEventType()) {
                     case TABLE_MAP: {
                         TableMapEventData data = event.getData();
-                        System.out.printf("%s, %s %n",
-                                data.getDatabase(),
-                                data.getTable());
                         currentTable = data.getTable();
                         currentDB = data.getDatabase();
                         break;

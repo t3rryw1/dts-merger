@@ -9,6 +9,8 @@ import com.cozystay.structure.ProcessedTaskPool;
 import com.cozystay.structure.RedisProcessedTaskPool;
 import com.cozystay.structure.SimpleTaskRunnerImpl;
 import com.cozystay.structure.TaskRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -19,6 +21,7 @@ import java.util.Properties;
 
 public class SyncMain {
     @SuppressWarnings("FieldCanBeLocal")
+    private static Logger logger = LoggerFactory.getLogger(SyncMain.class);
     private static int MAX_DATABASE_SIZE = 10;
     final static List<DataSource> dataSources = new ArrayList<>();
 
@@ -80,10 +83,24 @@ public class SyncMain {
 
                     for (DataSource source :
                             dataSources) {
+                        if (!source.isRunning()) {
+                            continue;
+                        }
                         for (SyncOperation operation : toProcess.getOperations()) {
                             if (operation.shouldSendToSource(source.getName())) {
-                                source.writeDB(operation);
-                                operation.setSourceSend(source.getName());
+                                if (source.writeDB(operation)) {
+                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
+                                    logger.info("write operation {} to source {} succeed.",
+                                            operation.toString(),
+                                            source.getName());
+                                } else {
+                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
+                                    logger.error("write operation {} to source {} failed and skipped. ",
+                                            operation.toString(),
+                                            source.getName());
+
+
+                                }
                             }
                         }
                     }

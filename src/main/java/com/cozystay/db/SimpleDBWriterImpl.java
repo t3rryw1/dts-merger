@@ -42,7 +42,7 @@ public class SimpleDBWriterImpl implements Writer {
             statement = conn.createStatement();
             String sql = operation.buildSql();
             logger.info("executing sql {}", sql);
-            return sql != null && statement.execute(sql);
+            return sql != null && statement.executeUpdate(sql) > 0;
 
         } catch (SQLException e) {
             logger.error(e.getMessage());

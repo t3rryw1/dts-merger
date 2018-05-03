@@ -96,7 +96,7 @@ public class SchemaLoader {
         } finally {
             try {
                 if (connection != null && !connection.isClosed()) {
-                    System.out.print("load schema completed.");
+                    System.out.println("load schema completed.");
                     connection.close();
                 }
             } catch (SQLException e) {
