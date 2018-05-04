@@ -1,5 +1,8 @@
 package com.cozystay.db.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 public class SchemaLoader {
+
+    private static Logger logger = LoggerFactory.getLogger(SchemaLoader.class);
 
     private final String dbAddress;
     private final Integer dbPort;
@@ -75,7 +80,7 @@ public class SchemaLoader {
                             String columnName = columnResultSet.getString("COLUMN_NAME");
                             String columnType = columnResultSet.getString("DATA_TYPE");
                             String typeName = columnResultSet.getString("TYPE_NAME");
-                            System.out.printf("%s %s %s %s %s %n",
+                            logger.info("{} {} {} {} {} ",
                                     columnName,
                                     columnType,
                                     typeName,

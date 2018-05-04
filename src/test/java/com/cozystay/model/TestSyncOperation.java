@@ -120,7 +120,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationCreate.buildSql(), String.format("INSERT INTO %s (%s) VALUES ('%s');", tableName, indexFieldName, currentValue));
+        Assert.assertEquals(operationCreate.buildSql(), String.format("INSERT INTO %s (`%s`) VALUES ('%s');", tableName, indexFieldName, currentValue));
 
         SyncOperation operationDELETE = new SyncOperationImpl( task,
                 SyncOperation.OperationType.DELETE,
@@ -128,7 +128,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationDELETE.buildSql(), String.format("DELETE FROM %s WHERE  %s = '%s' ;", tableName, indexFieldName, originValue));
+        Assert.assertEquals(operationDELETE.buildSql(), String.format("DELETE FROM %s WHERE  `%s` = '%s' ;", tableName, indexFieldName, originValue));
 
         SyncOperation operationREPLACE = new SyncOperationImpl( task,
                 SyncOperation.OperationType.REPLACE,
@@ -136,7 +136,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationREPLACE.buildSql(), String.format("UPDATE %s SET  %s = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
+        Assert.assertEquals(operationREPLACE.buildSql(), String.format("UPDATE %s SET  `%s` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
 
 
         SyncOperation operationUPDATE = new SyncOperationImpl( task,
@@ -145,7 +145,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUPDATE.buildSql(), String.format("UPDATE %s SET  %s = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
+        Assert.assertEquals(operationUPDATE.buildSql(), String.format("UPDATE %s SET  `%s` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationCreateWithMultiItems.buildSql(), String.format("INSERT INTO %s (%s, %s) VALUES ('%s', '%s');", tableName, indexFieldName1, fieldName1, currentValue, currentValue));
+        Assert.assertEquals(operationCreateWithMultiItems.buildSql(), String.format("INSERT INTO %s (`%s`, `%s`) VALUES ('%s', '%s');", tableName, indexFieldName1, fieldName1, currentValue, currentValue));
 
         SyncOperation operationDeleteWithMultiItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.DELETE,
@@ -180,7 +180,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationDeleteWithMultiItems.buildSql(), String.format("DELETE FROM %s WHERE  %s = '%s' ;", tableName, indexFieldName1, originValue));
+        Assert.assertEquals(operationDeleteWithMultiItems.buildSql(), String.format("DELETE FROM %s WHERE  `%s` = '%s' ;", tableName, indexFieldName1, originValue));
 
         SyncOperation operationReplaceWithMultiItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.REPLACE,
@@ -189,7 +189,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
         System.out.println(operationReplaceWithMultiItems.buildSql());
-        Assert.assertEquals(operationReplaceWithMultiItems.buildSql(), String.format("UPDATE %s SET  %s = '%s' ,  description = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
+        Assert.assertEquals(operationReplaceWithMultiItems.buildSql(), String.format("UPDATE %s SET  `%s` = '%s' ,  `description` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
 
         SyncOperation operationUpdateWithMultiItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,
@@ -197,7 +197,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUpdateWithMultiItems.buildSql(), String.format("UPDATE %s SET  %s = '%s' ,  description = '%s'  WHERE  %s = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
+        Assert.assertEquals(operationUpdateWithMultiItems.buildSql(), String.format("UPDATE %s SET  `%s` = '%s' ,  `description` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
 
         SyncOperation operationUpdateWithoutIndexItems = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,
@@ -213,7 +213,7 @@ public class TestSyncOperation {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date());
-        Assert.assertEquals(operationUpdateWithMultiIndexItems.buildSql(), String.format("UPDATE %s SET  %s = '%s' ,  %s = '%s'  WHERE  %s = '%s'  and  %s = '%s' ;", tableName, indexFieldName1, currentValue, indexFieldName2, currentValue, indexFieldName1, originValue, indexFieldName2, originValue));
+        Assert.assertEquals(operationUpdateWithMultiIndexItems.buildSql(), String.format("UPDATE %s SET  `%s` = '%s' ,  `%s` = '%s'  WHERE  `%s` = '%s'  and  `%s` = '%s' ;", tableName, indexFieldName1, currentValue, indexFieldName2, currentValue, indexFieldName1, originValue, indexFieldName2, originValue));
     }
 
 

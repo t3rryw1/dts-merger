@@ -17,7 +17,7 @@ public class SchemaRuleCollection {
         filterTableRule = new ArrayList<>();
     }
 
-    public boolean filter(SyncOperation operation) {
+    public synchronized boolean filter(SyncOperation operation) {
 
         List<SyncOperation.SyncItem> items = operation.getSyncItems();
 
@@ -36,7 +36,7 @@ public class SchemaRuleCollection {
         return true;
     }
 
-    public static SchemaRuleCollection loadRules(Properties prop) {
+    public synchronized static SchemaRuleCollection loadRules(Properties prop) {
         Iterator<Map.Entry<Object, Object>> it = prop.entrySet().iterator();
         SchemaRuleCollection list = new SchemaRuleCollection();
         while (it.hasNext()) {

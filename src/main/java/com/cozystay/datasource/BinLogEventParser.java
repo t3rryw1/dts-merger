@@ -13,6 +13,7 @@ import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.Date;
 import java.util.Map;
@@ -339,7 +340,7 @@ class BinLogEventParser {
     }
 
     private String transByteArrToStr(byte[] value) throws UnsupportedEncodingException {
-        return new String(value, "UTF-8");
+        return new String(value, StandardCharsets.UTF_8);
     }
 
     private enum AllowType {

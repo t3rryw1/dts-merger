@@ -27,7 +27,7 @@ public class SimpleDBWriterImpl implements Writer {
     }
 
     @Override
-    public boolean write(SyncOperation operation) {
+    public boolean write(SyncOperation operation) throws SQLException {
         Connection conn = null;
         Statement statement = null;
         try {
@@ -46,8 +46,7 @@ public class SimpleDBWriterImpl implements Writer {
 
         } catch (SQLException e) {
             logger.error(e.getMessage());
-            e.printStackTrace();
-            return false;
+            throw e;
         } finally {
             try {
                 if (statement != null && !statement.isClosed()) {

@@ -91,7 +91,7 @@ public class SyncOperationImpl implements SyncOperation {
                 List<String> keys = new ArrayList<>(), values = new ArrayList<>();
                 for (SyncItem item : getSyncItems()) {
                     if (item.currentValue != null) {
-                        keys.add(item.fieldName);
+                        keys.add("`"+item.fieldName+"`");
                         values.add(item.currentValueToString());
                     }
                 }
@@ -114,9 +114,9 @@ public class SyncOperationImpl implements SyncOperation {
                         continue;
                     }
                     if (item.currentValue == null) {
-                        operations.add(String.format(" %s = %s ", item.fieldName, "NULL"));
+                        operations.add(String.format(" %s = %s ", "`"+item.fieldName+"`", "NULL"));
                     } else {
-                        operations.add(String.format(" %s = %s ", item.fieldName, item.currentValueToString()));
+                        operations.add(String.format(" %s = %s ", "`"+item.fieldName+"`", item.currentValueToString()));
 
                     }
                 }
@@ -142,7 +142,7 @@ public class SyncOperationImpl implements SyncOperation {
             if (item.originValue == null) {
                 return null;
             }
-            conditions.add(String.format(" %s = %s ", item.fieldName, item.originValueToString()));
+            conditions.add(String.format(" %s = %s ", "`"+item.fieldName+"`", item.originValueToString()));
         }
         if (conditions.size() == 0) {
             return null;

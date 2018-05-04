@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Properties;
@@ -83,7 +84,7 @@ public abstract class DTSDataSourceImpl implements DataSource {
     }
 
     @Override
-    public boolean writeDB(SyncOperation operation) {
+    public boolean writeDB(SyncOperation operation) throws SQLException {
         return this.writer.write(operation);
 
     }

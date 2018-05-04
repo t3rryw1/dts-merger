@@ -39,6 +39,15 @@ public class TestSyncItem {
         Assert.assertNotEquals(item2, item5);
     }
 
+    @Test
+    public void testEscape(){
+        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", null, "\\n\\naa", SyncOperation.SyncItem.ColumnType.TEXT,true);
+        Assert.assertEquals(item1.currentValueToString(),"'\\n\\naa'");
+
+    }
+
+
+
     @After
     public void tearDown() {
         System.out.println("tear down " + this.getClass().getName());

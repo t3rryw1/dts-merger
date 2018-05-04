@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,6 @@ public class SyncMain {
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
         System.out.printf("Running with %d threads%n", threadNumber);
-
 
 
         String redisHost;
@@ -61,9 +61,8 @@ public class SyncMain {
                     }
                     SyncTask currentTask = pool.get(newRecord.getId());
                     SyncTask mergedTask = currentTask.merge(newRecord);
-                    if (mergedTask.allOperationsCompleted()) {
-                        pool.remove(currentTask);
-                    } else {
+                    pool.remove(currentTask);
+                    if (!mergedTask.allOperationsCompleted()) {
                         pool.add(mergedTask);
                     }
                 }
@@ -88,19 +87,27 @@ public class SyncMain {
                         }
                         for (SyncOperation operation : toProcess.getOperations()) {
                             if (operation.shouldSendToSource(source.getName())) {
-                                if (source.writeDB(operation)) {
-                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
-                                    logger.info("write operation {} to source {} succeed.",
-                                            operation.toString(),
-                                            source.getName());
-                                } else {
+                                try{
+                                    if (source.writeDB(operation)) {
+                                        operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
+                                        logger.info("write operation {} to source {} succeed.",
+                                                operation.toString(),
+                                                source.getName());
+                                    } else {
+                                        operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
+                                        logger.error("write operation {} to source {} failed and skipped. ",
+                                                operation.toString(),
+                                                source.getName());
+                                    }
+                                }catch (SQLException e){
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
                                     logger.error("write operation {} to source {} failed and skipped. ",
                                             operation.toString(),
                                             source.getName());
 
-
                                 }
+
+
                             }
                         }
                     }
@@ -126,7 +133,6 @@ public class SyncMain {
                 };
                 dataSources.add(source);
                 SyncTaskBuilder.addSource(source.getName());
-
 
 
             } catch (ParseException e) {
@@ -171,7 +177,7 @@ public class SyncMain {
 
     }
 
-    private static void onStop(){
+    private static void onStop() {
         for (DataSource source : dataSources) {
             System.out.println("stop source " + source.getName());
             source.stop();
@@ -180,7 +186,7 @@ public class SyncMain {
             Thread.sleep(50);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             System.exit(130);
 
         }

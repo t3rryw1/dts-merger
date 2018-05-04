@@ -14,6 +14,7 @@ import org.apache.commons.daemon.DaemonInitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ public class SyncDaemon implements Daemon {
         prop = new Properties();
         prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
-        logger.info("Running with {} threads%n", threadNumber);
+        logger.info("Running with {} threads", threadNumber);
 
 
         String redisHost;
@@ -92,19 +93,26 @@ public class SyncDaemon implements Daemon {
                         }
                         for (SyncOperation operation : toProcess.getOperations()) {
                             if (operation.shouldSendToSource(source.getName())) {
-                                if (source.writeDB(operation)) {
-                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
-                                    logger.info("write operation {} to source {} succeed.",
-                                            operation.toString(),
-                                            source.getName());
-                                } else {
+                                try{
+                                    if (source.writeDB(operation)) {
+                                        operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
+                                        logger.info("write operation {} to source {} succeed.",
+                                                operation.toString(),
+                                                source.getName());
+                                    } else {
+                                        operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
+                                        logger.error("write operation {} to source {} failed and skipped. ",
+                                                operation.toString(),
+                                                source.getName());
+                                    }
+                                }catch (SQLException e){
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
                                     logger.error("write operation {} to source {} failed and skipped. ",
                                             operation.toString(),
                                             source.getName());
 
-
                                 }
+
                             }
                         }
                     }

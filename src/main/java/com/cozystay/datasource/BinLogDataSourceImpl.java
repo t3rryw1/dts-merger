@@ -17,6 +17,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
@@ -110,7 +111,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     @Override
-    public boolean writeDB(SyncOperation operation) {
+    public boolean writeDB(SyncOperation operation) throws SQLException {
         return this.writer.write(operation);
     }
 
