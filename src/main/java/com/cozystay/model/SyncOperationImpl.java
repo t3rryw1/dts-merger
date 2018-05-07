@@ -157,6 +157,8 @@ public class SyncOperationImpl implements SyncOperation {
         //if both operation are to delete the item, consider them the same operation
         if (operation.getOperationType().equals(OperationType.DELETE))
             return true;
+        if (operation.getOperationType().equals(OperationType.CREATE))
+            return true;
         if (!operation.getSyncItems().containsAll(this.getSyncItems())) {
             return false;
         }

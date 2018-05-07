@@ -59,6 +59,7 @@ public class SyncMain {
                         pool.add(newRecord);
                         return;
                     }
+
                     SyncTask currentTask = pool.get(newRecord.getId());
                     SyncTask mergedTask = currentTask.merge(newRecord);
                     pool.remove(currentTask);
@@ -75,7 +76,6 @@ public class SyncMain {
                 synchronized (pool) {
                     toProcess = pool.poll();
                     if (toProcess == null) {
-//                        System.out.println("No SyncTask to process");
                         return;
                     }
 

@@ -130,17 +130,13 @@ public interface SyncOperation {
                     originValue instanceof Float
                     ) {
                 return originValue
-                        .toString()
-                        .replaceAll("'","''")
-                        .replaceAll("\\n","\\\\n")
-                        .replaceAll("\\r","\\\\r");
+                        .toString();
 
             } else {
                 return "'" + originValue
                         .toString()
                         .replaceAll("'","''")
-                        .replaceAll("\\n","\\\\n")
-                        .replaceAll("\\r","\\\\r")
+                        .replaceAll("\\\\","\\\\\\\\")
                         + "'";
             }
         }
@@ -162,18 +158,15 @@ public interface SyncOperation {
                     currentValue instanceof Float
                     ) {
                 return currentValue
-                        .toString()
-                        .replaceAll("'","''")
-                        .replaceAll("\\n","\\\\n")
-                        .replaceAll("\\r","\\\\r");
+                        .toString();
 
             } else {
                 return "'" + currentValue
                         .toString()
                         .replaceAll("'","''")
-                        .replaceAll("\\n","\\\\n")
-                        .replaceAll("\\r","\\\\r")
+                        .replaceAll("\\\\","\\\\\\\\")
                         + "'";
+
             }
         }
 

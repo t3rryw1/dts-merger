@@ -147,7 +147,16 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                         if (schemaRuleCollection.filter(task.getOperations().get(0))) {
                             break;
                         }
-                        consumeData(task);
+                        schemaRuleCollection.removeBlacklisted(task.getOperations().get(0));
+
+                        for(SyncOperation.SyncItem item:task.getOperations().get(0).getSyncItems()){
+                            //if any syncitem has any change
+                            if (item.hasChange()){
+                                consumeData(task);
+                                return;
+
+                            }
+                        }
 
                         break;
 

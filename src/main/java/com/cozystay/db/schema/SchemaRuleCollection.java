@@ -10,11 +10,13 @@ public class SchemaRuleCollection {
     List<FilterRule> filterRules;
     private List<IndexRule> indexRules;
     private List<Map.Entry<String, String>> filterTableRule;
+    private List<FilterRule> blackListRules;
 
     private SchemaRuleCollection() {
         filterRules = new ArrayList<>();
         indexRules = new ArrayList<>();
         filterTableRule = new ArrayList<>();
+        blackListRules = new ArrayList<>();
     }
 
     public synchronized boolean filter(SyncOperation operation) {
@@ -36,6 +38,24 @@ public class SchemaRuleCollection {
         return true;
     }
 
+    public synchronized void removeBlacklisted(SyncOperation operation) {
+
+        List<SyncOperation.SyncItem> items = operation.getSyncItems();
+
+        Iterator<SyncOperation.SyncItem> i = items.iterator();
+        while (i.hasNext()) {
+            SyncOperation.SyncItem item = i.next(); // must be called before you can call i.remove()
+            for (FilterRule rule : blackListRules) {
+                if (rule.match(item, operation.getTask())) {
+                    i.remove();
+                }
+            }
+
+            // Do something
+        }
+        return;
+    }
+
     public synchronized static SchemaRuleCollection loadRules(Properties prop) {
         Iterator<Map.Entry<Object, Object>> it = prop.entrySet().iterator();
         SchemaRuleCollection list = new SchemaRuleCollection();
@@ -50,6 +70,9 @@ public class SchemaRuleCollection {
             } else if (entry.getKey().toString().startsWith("schema.table_filter.")) {
                 String value = entry.getValue().toString().trim();
                 list.filterTableRule.add(parseTableFilter(value));
+            } else if (entry.getKey().toString().startsWith("schema.field_blacklist.")) {
+                String value = entry.getValue().toString().trim();
+                list.blackListRules.add(parseFieldFilter(value));
             }
 
         }
