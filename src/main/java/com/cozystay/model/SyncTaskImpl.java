@@ -91,10 +91,6 @@ public class SyncTaskImpl implements SyncTask {
                     selfOp.mergeStatus(toMergeOp);
                     continue toMerge;
                 }
-                if(toMergeOp.collideWith(selfOp)){
-                    addOperation(selfOp.resolveCollide(toMergeOp));
-                    continue toMerge;
-                }
             }
             addOperation(toMergeOp);
         }

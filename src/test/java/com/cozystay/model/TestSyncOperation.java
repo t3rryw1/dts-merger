@@ -38,21 +38,21 @@ public class TestSyncOperation {
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));
 
         SyncOperation operation1 = new SyncOperationImpl( task,
-                SyncOperation.OperationType.CREATE,
+                SyncOperation.OperationType.UPDATE,
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 sources,
                 new Date());
 
         SyncOperation operation2 = new SyncOperationImpl( task,
-                SyncOperation.OperationType.CREATE,
+                SyncOperation.OperationType.UPDATE,
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 sources,
                 new Date());
 
         SyncOperation operation3 = new SyncOperationImpl( task,
-                SyncOperation.OperationType.CREATE,
+                SyncOperation.OperationType.UPDATE,
                 new ArrayList<>(Arrays.asList(item2)),
                 "source2",
                 sources,

@@ -65,11 +65,11 @@ public class SyncDaemon implements Daemon {
                         pool.add(newRecord);
                         return;
                     }
+
                     SyncTask currentTask = pool.get(newRecord.getId());
                     SyncTask mergedTask = currentTask.merge(newRecord);
-                    if (mergedTask.allOperationsCompleted()) {
-                        pool.remove(currentTask);
-                    } else {
+                    pool.remove(currentTask);
+                    if (!mergedTask.allOperationsCompleted()) {
                         pool.add(mergedTask);
                     }
                 }
@@ -84,7 +84,7 @@ public class SyncDaemon implements Daemon {
                     if (toProcess == null) {
                         return;
                     }
-                    logger.info("work on task: {}" + toProcess.toString());
+//                    logger.info("work on task: {}" + toProcess.toString());
 
                     for (DataSource source :
                             dataSources) {
