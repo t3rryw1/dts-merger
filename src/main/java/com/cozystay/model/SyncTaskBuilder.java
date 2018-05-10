@@ -9,7 +9,7 @@ public class SyncTaskBuilder {
     private static SyncTaskBuilder builder;
     private static List<String> sourceList = new LinkedList<>();
     private String source;
-    private Date operationTime;
+    private Long operationTime;
     private List<SyncOperation.SyncItem> items;
     private String uuid;
     private String database;
@@ -20,7 +20,7 @@ public class SyncTaskBuilder {
         this.source = source;
     }
 
-    public void setOperationTime(Date operationTime) {
+    public void setOperationTime(Long operationTime) {
         this.operationTime = operationTime;
     }
 

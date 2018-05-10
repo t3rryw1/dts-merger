@@ -101,7 +101,7 @@ public class SyncTaskImpl implements SyncTask {
                     return o1.getOperationType().compareTo(o2.getOperationType());
                     //
                 }
-                return o1.getTime().after(o2.getTime())?1:-1;
+                return o1.getTime()>(o2.getTime())?1:-1;
             }
         });
         return this;

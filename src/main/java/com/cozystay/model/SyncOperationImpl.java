@@ -10,7 +10,7 @@ public class SyncOperationImpl implements SyncOperation {
     private final OperationType operationType;
     private List<SyncItem> syncItems;
     private final Map<String, SyncStatus> syncStatusMap;
-    private final Date operationTime;
+    private final Long operationTime;
 
 
     SyncOperationImpl() {
@@ -26,7 +26,7 @@ public class SyncOperationImpl implements SyncOperation {
                              List<SyncItem> syncItems,
                              String source,
                              List<String> sourceList,
-                             Date operationTime) {
+                             Long operationTime) {
         this.task = task;
         this.operationType = operationType;
         this.syncItems = syncItems;
@@ -58,7 +58,7 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
-    public Date getTime() {
+    public Long getTime() {
         return this.operationTime;
     }
 
@@ -245,7 +245,7 @@ public class SyncOperationImpl implements SyncOperation {
                 if (selfItem.fieldName.equals(toMergeItem.fieldName)) {
                     //found item with same field, check timestamp,
                     //replace item with newer one if necessary
-                    if (toMergeOp.getTime().after(this.getTime())) {
+                    if (toMergeOp.getTime()>(this.getTime())) {
                         mergedItems.remove(selfItem);
                         mergedItems.add(toMergeItem);
                     }
@@ -256,12 +256,12 @@ public class SyncOperationImpl implements SyncOperation {
             //if no match found in selfItems, add the item to itemList
             mergedItems.add(toMergeItem);
         }
-        Date operationTime = toMergeOp.getTime().after(this.getTime())
+        Long operationTime = toMergeOp.getTime()>(this.getTime())
                 ?
                 toMergeOp.getTime()
                 :
                 getTime();
-        operationTime = DateUtils.addSeconds(operationTime, 1);
+        operationTime = operationTime+100;
         List<String> sourceList = new ArrayList<>(syncStatusMap.keySet());
 
         return new SyncOperationImpl(

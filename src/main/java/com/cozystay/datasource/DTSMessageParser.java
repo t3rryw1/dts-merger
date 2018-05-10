@@ -35,8 +35,7 @@ public class DTSMessageParser {
 
 
         Long timestamp = Long.valueOf(record.getTimestamp());
-        Date date = new Date(timestamp * 1000);
-        builder.setOperationTime(date);
+        builder.setOperationTime(timestamp * 1000);
 
         builder.setSource(source);
 

@@ -3,9 +3,7 @@ package com.cozystay.model;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -15,7 +13,7 @@ public interface SyncOperation {
 
     SyncTask getTask();
 
-    Date getTime();
+    Long getTime();
 
     OperationType getOperationType();
 
@@ -96,7 +94,6 @@ public interface SyncOperation {
             return new EqualsBuilder()
                     .append(fieldName, item.fieldName)
                     .append(currentValue, item.currentValue)
-                    .append(originValue, item.originValue)
                     .append(fieldType, item.fieldType)
                     .append(isIndex, item.isIndex)
                     .isEquals();
@@ -107,7 +104,6 @@ public interface SyncOperation {
             return new HashCodeBuilder(17, 37)
                     .append(fieldName)
                     .append(currentValue)
-                    .append(originValue)
                     .append(fieldType)
                     .append(isIndex)
                     .toHashCode();

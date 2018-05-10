@@ -28,7 +28,7 @@ class BinLogEventParser {
         builder.setSource(subscribeInstanceID);
         builder.setTableName(currentTable);
         builder.setDatabase(currentDB);
-        builder.setOperationTime(new Date(event.getHeader().getTimestamp()));
+        builder.setOperationTime(event.getHeader().getTimestamp());
         UuidBuilder uuidBuilder = new UuidBuilder();
         SchemaTable table = schemaLoader.getTable(currentDB, currentTable);
         if (table == null) {

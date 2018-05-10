@@ -21,7 +21,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
 
         Assert.assertEquals(operation.getSyncItems().get(0).fieldName,"user_notes");
         Assert.assertEquals(operation.getSyncItems().get(0).originValue,"val1");
@@ -42,21 +42,21 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 sources,
-                new Date());
+                new Date().getTime());
 
         SyncOperation operation2 = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 sources,
-                new Date());
+                new Date().getTime());
 
         SyncOperation operation3 = new SyncOperationImpl( task,
                 SyncOperation.OperationType.UPDATE,
                 new ArrayList<>(Arrays.asList(item2)),
                 "source2",
                 sources,
-                new Date());
+                new Date().getTime());
 
         Assert.assertTrue(operation1.isSameOperation(operation2));
         Assert.assertFalse(operation1.isSameOperation(operation3));
@@ -72,7 +72,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
 
         operation.updateStatus("source1", SyncOperation.SyncStatus.COMPLETED);
         Assert.assertEquals(operation.getSyncStatus().get("source1"), SyncOperation.SyncStatus.COMPLETED);
@@ -88,14 +88,14 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
 
         SyncOperation ToMergeOperation = new SyncOperationImpl( task,
                 SyncOperation.OperationType.CREATE,
                 new ArrayList<>(Arrays.asList(item1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
 
         ToMergeOperation.setSourceSend("source2");
         operation.mergeStatus(ToMergeOperation);
@@ -119,7 +119,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationCreate.buildSql(), String.format("INSERT INTO %s (`%s`) VALUES ('%s');", tableName, indexFieldName, currentValue));
 
         SyncOperation operationDELETE = new SyncOperationImpl( task,
@@ -127,7 +127,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationDELETE.buildSql(), String.format("DELETE FROM %s WHERE  `%s` = '%s' ;", tableName, indexFieldName, originValue));
 
         SyncOperation operationREPLACE = new SyncOperationImpl( task,
@@ -135,7 +135,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationREPLACE.buildSql(), String.format("UPDATE %s SET  `%s` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
 
 
@@ -144,7 +144,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationUPDATE.buildSql(), String.format("UPDATE %s SET  `%s` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName, currentValue, indexFieldName, originValue));
     }
 
@@ -171,7 +171,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex1, itemWithoutIndex1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationCreateWithMultiItems.buildSql(), String.format("INSERT INTO %s (`%s`, `%s`) VALUES ('%s', '%s');", tableName, indexFieldName1, fieldName1, currentValue, currentValue));
 
         SyncOperation operationDeleteWithMultiItems = new SyncOperationImpl( task,
@@ -179,7 +179,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex1, itemWithoutIndex1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationDeleteWithMultiItems.buildSql(), String.format("DELETE FROM %s WHERE  `%s` = '%s' ;", tableName, indexFieldName1, originValue));
 
         SyncOperation operationReplaceWithMultiItems = new SyncOperationImpl( task,
@@ -187,7 +187,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex1, itemWithoutIndex1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         System.out.println(operationReplaceWithMultiItems.buildSql());
         Assert.assertEquals(operationReplaceWithMultiItems.buildSql(), String.format("UPDATE %s SET  `%s` = '%s' ,  `description` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
 
@@ -196,7 +196,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex1, itemWithoutIndex1)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationUpdateWithMultiItems.buildSql(), String.format("UPDATE %s SET  `%s` = '%s' ,  `description` = '%s'  WHERE  `%s` = '%s' ;", tableName, indexFieldName1, currentValue, currentValue, indexFieldName1, originValue));
 
         SyncOperation operationUpdateWithoutIndexItems = new SyncOperationImpl( task,
@@ -204,7 +204,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithoutIndex1, itemWithoutIndex2)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationUpdateWithoutIndexItems.buildSql(), null);
 
         SyncOperation operationUpdateWithMultiIndexItems = new SyncOperationImpl( task,
@@ -212,7 +212,7 @@ public class TestSyncOperation {
                 new ArrayList<>(Arrays.asList(itemWithIndex1, itemWithIndex2)),
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
-                new Date());
+                new Date().getTime());
         Assert.assertEquals(operationUpdateWithMultiIndexItems.buildSql(), String.format("UPDATE %s SET  `%s` = '%s' ,  `%s` = '%s'  WHERE  `%s` = '%s'  and  `%s` = '%s' ;", tableName, indexFieldName1, currentValue, indexFieldName2, currentValue, indexFieldName1, originValue, indexFieldName2, originValue));
     }
 

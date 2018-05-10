@@ -37,7 +37,7 @@ public class TestSyncTask {
                         new ArrayList<>(Arrays.asList(item)),
                         "source1",
                         new ArrayList<>(Arrays.asList("source1", "source2")),
-                        new Date())
+                        new Date().getTime())
         );
 
         task2.addOperation(
@@ -46,7 +46,7 @@ public class TestSyncTask {
                         new ArrayList<>(Arrays.asList(item)),
                         "source2",
                         new ArrayList<>(Arrays.asList("source1", "source2")),
-                        new Date())
+                        new Date().getTime())
         );
 
         task1.getOperations().get(0).setSourceSend("source2");

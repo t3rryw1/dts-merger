@@ -78,7 +78,7 @@ public class TestSchemaRuleCollection {
                 items,
                 "source1",
                 sources,
-                new Date());
+                new Date().getTime());
 
     }
 

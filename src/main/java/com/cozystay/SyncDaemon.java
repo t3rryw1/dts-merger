@@ -60,9 +60,9 @@ public class SyncDaemon implements Daemon {
             @Override
             public void addTask(SyncTask newRecord) {
                 synchronized (pool) {
-                    logger.info("add new task: {}" + newRecord.toString());
                     if (!pool.hasTask(newRecord)) {
                         pool.add(newRecord);
+                        logger.info("add new task: {}" + newRecord.toString());
                         return;
                     }
 
@@ -71,6 +71,7 @@ public class SyncDaemon implements Daemon {
                     pool.remove(currentTask);
                     if (!mergedTask.allOperationsCompleted()) {
                         pool.add(mergedTask);
+                        logger.info("add merged task: {}" + mergedTask.toString());
                     }
                 }
 
