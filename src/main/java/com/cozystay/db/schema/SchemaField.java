@@ -7,11 +7,13 @@ public class SchemaField {
     public final SyncOperation.SyncItem.ColumnType columnType;
     final int index;
     public final boolean isPrimary;
+    public final boolean nullable;
 
-    public SchemaField(String columnName, String columnType, int index, boolean isPrimary) {
+    public SchemaField(String columnName, String columnType, int index, boolean isPrimary, boolean nullable) {
         this.columnName = columnName;
         this.columnType = SyncOperation.SyncItem.ColumnType.fromString(columnType);
         this.index = index;
         this.isPrimary = isPrimary;
+        this.nullable = nullable;
     }
 }

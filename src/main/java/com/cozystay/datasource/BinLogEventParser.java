@@ -28,7 +28,7 @@ class BinLogEventParser {
         builder.setSource(subscribeInstanceID);
         builder.setTableName(currentTable);
         builder.setDatabase(currentDB);
-        builder.setOperationTime(event.getHeader().getTimestamp());
+        builder.setOperationTime(new Date().getTime());
         UuidBuilder uuidBuilder = new UuidBuilder();
         SchemaTable table = schemaLoader.getTable(currentDB, currentTable);
         if (table == null) {
@@ -118,6 +118,7 @@ class BinLogEventParser {
                                 null,
                                 value,
                                 SyncOperation.OperationType.CREATE);
+
                         if (item.isIndex) {
                             builder.addItem(item);
                         } else if (item.hasChange()) {
@@ -268,6 +269,25 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.SqlDate)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.SqlDate)) {
+                    if (newValue == null) {
+                        if (!field.nullable) {
+                            if (oldValue == null)
+                                return new SyncOperation.SyncItem<>(field.columnName,
+                                        null,
+                                        "0000-00-00",
+                                        field.columnType,
+                                        field.isPrimary);
+                            else {
+                                return new SyncOperation.SyncItem<>(field.columnName,
+                                        oldValue.toString(),
+                                        "0000-00-00",
+                                        field.columnType,
+                                        field.isPrimary);
+
+                            }
+                        }
+                    }
+
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,

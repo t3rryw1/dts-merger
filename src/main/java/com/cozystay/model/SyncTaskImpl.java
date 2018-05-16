@@ -39,7 +39,7 @@ public class SyncTaskImpl implements SyncTask {
     public String toString(){
         String operationStr = "";
         for(SyncOperation operation : this.operations){
-            operationStr = operationStr + "\n" + operation.toString();
+            operationStr = operationStr + "\t" + operation.toString();
         }
         return String.format("id: %s; operations: %s",
                 this.getId(),

@@ -57,6 +57,7 @@ public class SyncMain {
                 synchronized (pool) {
                     if (!pool.hasTask(newRecord)) {
                         pool.add(newRecord);
+                        logger.info("add new task: {}" + newRecord.toString());
                         return;
                     }
 
@@ -65,7 +66,12 @@ public class SyncMain {
                     pool.remove(currentTask);
                     if (!mergedTask.allOperationsCompleted()) {
                         pool.add(mergedTask);
+                        logger.info("add merged task: {}" + mergedTask.toString());
+                    } else {
+                        logger.info("removed task: {}" + mergedTask.toString());
+
                     }
+
                 }
 
             }
@@ -87,7 +93,7 @@ public class SyncMain {
                         }
                         for (SyncOperation operation : toProcess.getOperations()) {
                             if (operation.shouldSendToSource(source.getName())) {
-                                try{
+                                try {
                                     if (source.writeDB(operation)) {
                                         operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
                                         logger.info("write operation {} to source {} succeed.",
@@ -99,7 +105,7 @@ public class SyncMain {
                                                 operation.toString(),
                                                 source.getName());
                                     }
-                                }catch (SQLException e){
+                                } catch (SQLException e) {
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
                                     logger.error("write operation {} to source {} failed and skipped. ",
                                             operation.toString(),

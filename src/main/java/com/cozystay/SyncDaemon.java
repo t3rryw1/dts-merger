@@ -72,6 +72,9 @@ public class SyncDaemon implements Daemon {
                     if (!mergedTask.allOperationsCompleted()) {
                         pool.add(mergedTask);
                         logger.info("add merged task: {}" + mergedTask.toString());
+                    }else{
+                        logger.info("removed task: {}" + mergedTask.toString());
+
                     }
                 }
 

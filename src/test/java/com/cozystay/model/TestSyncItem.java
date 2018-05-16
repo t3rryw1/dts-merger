@@ -36,7 +36,7 @@ public class TestSyncItem {
         SyncOperation.SyncItem<String> item5 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
         Assert.assertEquals(item3, item4);
         Assert.assertEquals(item3.hashCode(), item4.hashCode());
-        Assert.assertNotEquals(item2, item5);
+        Assert.assertEquals(item2, item5);
     }
 
     @Test

@@ -80,6 +80,13 @@ public class SchemaLoader {
                             String columnName = columnResultSet.getString("COLUMN_NAME");
                             String columnType = columnResultSet.getString("DATA_TYPE");
                             String typeName = columnResultSet.getString("TYPE_NAME");
+                            String nullable = columnResultSet.getString(18);
+                            boolean isNullable;
+                            if (nullable.equals("NO")) {
+                                isNullable = false;
+                            } else {
+                                isNullable = true;
+                            }
                             logger.info("{} {} {} {} {} ",
                                     columnName,
                                     columnType,
@@ -87,9 +94,9 @@ public class SchemaLoader {
                                     dbName,
                                     tableName);
                             if (indexFields.contains(columnName)) {
-                                table.addField(new SchemaField(columnName, typeName, index, true));
+                                table.addField(new SchemaField(columnName, typeName, index, true, isNullable));
                             } else {
-                                table.addField(new SchemaField(columnName, typeName, index, false));
+                                table.addField(new SchemaField(columnName, typeName, index, false, isNullable));
                             }
                             index++;
                         }
