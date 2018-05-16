@@ -234,19 +234,59 @@ class BinLogEventParser {
                 }
             }
             case INT:
-            case UNSIGNED_INT:
             case TINYINT:
-            case UNSIGNED_TINYINT:
             case SMALLINT:
-            case UNSIGNED_SMALLINT:
             case MEDIUMINT:
-            case UNSIGNED_MEDIUMINT: {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
+                            field.columnType,
+                            field.isPrimary);
+                }
+                break;
+            case UNSIGNED_INT:
+                if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
+                        &&
+                        checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
+                    return new SyncOperation.SyncItem<>(field.columnName,
+                            convertNegativeInteger((Integer) oldValue,    4294967296L),
+                            convertNegativeInteger((Integer) newValue, 4294967296L),
+                            field.columnType,
+                            field.isPrimary);
+                }
+                break;
+            case UNSIGNED_TINYINT:
+                if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
+                        &&
+                        checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
+                    return new SyncOperation.SyncItem<>(field.columnName,
+                            convertNegativeInteger((Integer) oldValue, 256L),
+                            convertNegativeInteger((Integer) newValue, 256L),
+                            field.columnType,
+                            field.isPrimary);
+                }
+                break;
+            case UNSIGNED_SMALLINT:
+                if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
+                        &&
+                        checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
+                    return new SyncOperation.SyncItem<>(field.columnName,
+                            convertNegativeInteger((Integer) oldValue, 65536L),
+                            convertNegativeInteger((Integer) newValue, 65536L),
+                            field.columnType,
+                            field.isPrimary);
+                }
+                break;
+            case UNSIGNED_MEDIUMINT: {
+                if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
+                        &&
+                        checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
+                    return new SyncOperation.SyncItem<>(field.columnName,
+                            convertNegativeInteger((Integer) oldValue, 16777216L),
+                            convertNegativeInteger((Integer) newValue, 16777216L),
                             field.columnType,
                             field.isPrimary);
                 }
@@ -351,6 +391,15 @@ class BinLogEventParser {
             }
         }
         throw new IllegalArgumentException("Illegal value type to actual field");
+    }
+
+    private static Integer convertNegativeInteger(Integer integer, Long mask) {
+        if (integer == null) return null;
+        if (integer < 0) {
+            return Long.valueOf(mask + integer).intValue();
+        } else {
+            return integer;
+        }
     }
 
     private Boolean checkTypes(Serializable value, BinLogEventParser.AllowType dataType) {
