@@ -19,6 +19,7 @@ import redis.clients.jedis.JedisPool;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 
@@ -137,26 +138,30 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                     case UPDATE_ROWS:
                     case DELETE_ROWS:
                     case WRITE_ROWS:
-                        SyncTask task = (new BinLogEventParser()).parseTask(event,
+                        List<SyncTask> tasks = (new BinLogEventParser()).parseTask(event,
                                 schemaLoader, subscribeInstanceID,
                                 currentTable,
                                 currentDB);
-                        if (task == null) {
-                            break;
-                        }
-                        if (schemaRuleCollection.filter(task.getOperations().get(0))) {
-                            break;
-                        }
-                        schemaRuleCollection.removeBlacklisted(task.getOperations().get(0));
+                        nextTask:
+                        for(SyncTask task: tasks){
+                            if (task == null) {
+                                continue;
+                            }
+                            if (schemaRuleCollection.filter(task.getOperations().get(0))) {
+                                continue;
+                            }
+                            schemaRuleCollection.removeBlacklisted(task.getOperations().get(0));
 
-                        for(SyncOperation.SyncItem item:task.getOperations().get(0).getSyncItems()){
-                            //if any syncitem has any change
-                            if (item.hasChange()){
-                                consumeData(task);
-                                return;
+                            for(SyncOperation.SyncItem item:task.getOperations().get(0).getSyncItems()){
+                                //if any syncitem has any change
+                                if (item.hasChange()){
+                                    consumeData(task);
+                                    continue nextTask;
 
+                                }
                             }
                         }
+
 
                         break;
 

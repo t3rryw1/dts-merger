@@ -14,128 +14,160 @@ import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.util.BitSet;
-import java.util.Date;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 class BinLogEventParser {
-    SyncTask parseTask(Event event,
-                       SchemaLoader schemaLoader, String subscribeInstanceID,
-                       String currentTable,
-                       String currentDB) {
-        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
-        builder.setSource(subscribeInstanceID);
-        builder.setTableName(currentTable);
-        builder.setDatabase(currentDB);
-        builder.setOperationTime(new Date().getTime());
-        UuidBuilder uuidBuilder = new UuidBuilder();
+    List<SyncTask> parseTask(Event event,
+                             SchemaLoader schemaLoader, String subscribeInstanceID,
+                             String currentTable,
+                             String currentDB) {
         SchemaTable table = schemaLoader.getTable(currentDB, currentTable);
+        List<SyncTask> taskList = new ArrayList<>();
+
         if (table == null) {
-            return null;
+            return taskList;
         }
         try {
 
 
             switch (event.getHeader().getEventType()) {
                 case UPDATE_ROWS: {
-                    builder.setOperationType(SyncOperation.OperationType.UPDATE);
                     UpdateRowsEventData data = event.getData();
                     BitSet updated = data.getIncludedColumns();
                     BitSet beforeUpdate = data.getIncludedColumnsBeforeUpdate();
-                    Map.Entry<Serializable[], Serializable[]> values = data.getRows().get(0);
-                    for (int i = 0; i < table.getFieldList().size(); i++) {
-                        SchemaField field = table.getFieldList().get(i);
-                        if (!updated.get(i) || !beforeUpdate.get(i)) {
-                            continue;
-                        }
-                        Serializable oldValue = values.getKey()[i];
-                        Serializable newValue = values.getValue()[i];
-                        if (field.isPrimary) {
-                            assert oldValue != null;
-                            uuidBuilder.addValue(oldValue.toString());
-                        }
+                    for (int dataIndex = 0; dataIndex < data.getRows().size(); dataIndex++) {
+                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+                        builder.setSource(subscribeInstanceID);
+                        builder.setTableName(currentTable);
+                        builder.setDatabase(currentDB);
+                        builder.setOperationTime(new Date().getTime());
+                        UuidBuilder uuidBuilder = new UuidBuilder();
+                        builder.setOperationType(SyncOperation.OperationType.UPDATE);
 
-                        SyncOperation.SyncItem item;
-                        item = buildItem(field,
-                                oldValue,
-                                newValue,
-                                SyncOperation.OperationType.UPDATE);
-                        if (item.isIndex) {
-                            builder.addItem(item);
-                        } else if (item.hasChange()) {
-                            builder.addItem(item);
+                        Map.Entry<Serializable[], Serializable[]> values = data.getRows().get(dataIndex);
+                        for (int i = 0; i < table.getFieldList().size(); i++) {
+                            SchemaField field = table.getFieldList().get(i);
+                            if (!updated.get(i) || !beforeUpdate.get(i)) {
+                                continue;
+                            }
+                            Serializable oldValue = values.getKey()[i];
+                            Serializable newValue = values.getValue()[i];
+                            if (field.isPrimary) {
+                                assert oldValue != null;
+                                uuidBuilder.addValue(oldValue.toString());
+                            }
+
+                            SyncOperation.SyncItem item;
+                            item = buildItem(field,
+                                    oldValue,
+                                    newValue,
+                                    SyncOperation.OperationType.UPDATE);
+                            if (item.isIndex) {
+                                builder.addItem(item);
+                            } else if (item.hasChange()) {
+                                builder.addItem(item);
+                            }
                         }
+                        builder.setUuid(uuidBuilder.build());
+                        taskList.add(builder.build());
+
                     }
+                    break;
+
                 }
-                break;
                 case DELETE_ROWS: {
-                    builder.setOperationType(SyncOperation.OperationType.DELETE);
                     DeleteRowsEventData deleteData = event.getData();
                     BitSet updated = deleteData.getIncludedColumns();
-                    Serializable[] values = deleteData.getRows().get(0);
-                    for (int i = 0; i < table.getFieldList().size(); i++) {
-                        SchemaField field = table.getFieldList().get(i);
-                        if (!updated.get(i)) {
-                            continue;
-                        }
-                        Serializable value = values[i];
-                        if (field.isPrimary) {
-                            assert value != null;
+                    for (int dataIndex = 0; dataIndex < deleteData.getRows().size(); dataIndex++) {
+                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+                        builder.setSource(subscribeInstanceID);
+                        builder.setTableName(currentTable);
+                        builder.setDatabase(currentDB);
+                        builder.setOperationTime(new Date().getTime());
+                        UuidBuilder uuidBuilder = new UuidBuilder();
+                        builder.setOperationType(SyncOperation.OperationType.DELETE);
 
-                            uuidBuilder.addValue(value.toString());
-                        }
+                        Serializable[] values = deleteData.getRows().get(dataIndex);
+                        for (int i = 0; i < table.getFieldList().size(); i++) {
+                            SchemaField field = table.getFieldList().get(i);
+                            if (!updated.get(i)) {
+                                continue;
+                            }
+                            Serializable value = values[i];
+                            if (field.isPrimary) {
+                                assert value != null;
 
-                        SyncOperation.SyncItem item = buildItem(field,
-                                value,
-                                null,
-                                SyncOperation.OperationType.DELETE);
-                        if (item.isIndex) {
-                            builder.addItem(item);
-                        } else if (item.hasChange()) {
-                            builder.addItem(item);
+                                uuidBuilder.addValue(value.toString());
+                            }
+
+                            SyncOperation.SyncItem item = buildItem(field,
+                                    value,
+                                    null,
+                                    SyncOperation.OperationType.DELETE);
+                            if (item.isIndex) {
+                                builder.addItem(item);
+                            } else if (item.hasChange()) {
+                                builder.addItem(item);
+                            }
                         }
+                        builder.setUuid(uuidBuilder.build());
+                        taskList.add(builder.build());
+
                     }
                     break;
+
                 }
+
                 case WRITE_ROWS: {
-                    builder.setOperationType(SyncOperation.OperationType.CREATE);
                     WriteRowsEventData writeData = event.getData();
                     BitSet created = writeData.getIncludedColumns();
-                    Serializable[] values = writeData.getRows().get(0);
-                    for (int i = 0; i < table.getFieldList().size(); i++) {
-                        SchemaField field = table.getFieldList().get(i);
-                        if (!created.get(i)) {
-                            continue;
-                        }
-                        Serializable value = values[i];
-                        if (field.isPrimary) {
-                            assert value != null;
-                            uuidBuilder.addValue(value.toString());
-                        }
+                    for (int dataIndex = 0; dataIndex < writeData.getRows().size(); dataIndex++) {
 
-                        SyncOperation.SyncItem item = buildItem(field,
-                                null,
-                                value,
-                                SyncOperation.OperationType.CREATE);
+                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+                        builder.setSource(subscribeInstanceID);
+                        builder.setTableName(currentTable);
+                        builder.setDatabase(currentDB);
+                        builder.setOperationTime(new Date().getTime());
+                        UuidBuilder uuidBuilder = new UuidBuilder();
+                        builder.setOperationType(SyncOperation.OperationType.CREATE);
 
-                        if (item.isIndex) {
-                            builder.addItem(item);
-                        } else if (item.hasChange()) {
-                            builder.addItem(item);
+                        Serializable[] values = writeData.getRows().get(dataIndex);
+                        for (int i = 0; i < table.getFieldList().size(); i++) {
+                            SchemaField field = table.getFieldList().get(i);
+                            if (!created.get(i)) {
+                                continue;
+                            }
+                            Serializable value = values[i];
+                            if (field.isPrimary) {
+                                assert value != null;
+                                uuidBuilder.addValue(value.toString());
+                            }
+
+                            SyncOperation.SyncItem item = buildItem(field,
+                                    null,
+                                    value,
+                                    SyncOperation.OperationType.CREATE);
+
+                            if (item.isIndex) {
+                                builder.addItem(item);
+                            } else if (item.hasChange()) {
+                                builder.addItem(item);
+                            }
                         }
+                        builder.setUuid(uuidBuilder.build());
+                        taskList.add(builder.build());
+
                     }
                     break;
+
                 }
             }
-            builder.setUuid(uuidBuilder.build());
-
-            return builder.build();
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
             return null;
         }
 
+        return taskList;
 
     }
 
@@ -252,7 +284,7 @@ class BinLogEventParser {
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
                     return new SyncOperation.SyncItem<>(field.columnName,
-                            convertNegativeInteger((Integer) oldValue,    4294967296L),
+                            convertNegativeInteger((Integer) oldValue, 4294967296L),
                             convertNegativeInteger((Integer) newValue, 4294967296L),
                             field.columnType,
                             field.isPrimary);
