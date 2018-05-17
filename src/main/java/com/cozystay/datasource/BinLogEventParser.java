@@ -36,37 +36,25 @@ class BinLogEventParser {
                     BitSet updated = data.getIncludedColumns();
                     BitSet beforeUpdate = data.getIncludedColumnsBeforeUpdate();
                     for (int dataIndex = 0; dataIndex < data.getRows().size(); dataIndex++) {
-                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
-                        builder.setSource(subscribeInstanceID);
-                        builder.setTableName(currentTable);
-                        builder.setDatabase(currentDB);
-                        builder.setOperationTime(new Date().getTime());
+                        SyncTaskBuilder builder = getBuilder(SyncOperation.OperationType.UPDATE,
+                                subscribeInstanceID,
+                                currentTable,
+                                currentDB);
                         UuidBuilder uuidBuilder = new UuidBuilder();
-                        builder.setOperationType(SyncOperation.OperationType.UPDATE);
 
                         Map.Entry<Serializable[], Serializable[]> values = data.getRows().get(dataIndex);
                         for (int i = 0; i < table.getFieldList().size(); i++) {
-                            SchemaField field = table.getFieldList().get(i);
                             if (!updated.get(i) || !beforeUpdate.get(i)) {
                                 continue;
                             }
-                            Serializable oldValue = values.getKey()[i];
-                            Serializable newValue = values.getValue()[i];
-                            if (field.isPrimary) {
-                                assert oldValue != null;
-                                uuidBuilder.addValue(oldValue.toString());
-                            }
 
-                            SyncOperation.SyncItem item;
-                            item = buildItem(field,
-                                    oldValue,
-                                    newValue,
-                                    SyncOperation.OperationType.UPDATE);
-                            if (item.isIndex) {
-                                builder.addItem(item);
-                            } else if (item.hasChange()) {
-                                builder.addItem(item);
-                            }
+                            addItemToBuilder(table.getFieldList().get(i),
+                                    values.getKey()[i],
+                                    values.getValue()[i],
+                                    values.getKey()[i],
+                                    SyncOperation.OperationType.UPDATE,
+                                    builder,
+                                    uuidBuilder);
                         }
                         builder.setUuid(uuidBuilder.build());
                         taskList.add(builder.build());
@@ -79,36 +67,25 @@ class BinLogEventParser {
                     DeleteRowsEventData deleteData = event.getData();
                     BitSet updated = deleteData.getIncludedColumns();
                     for (int dataIndex = 0; dataIndex < deleteData.getRows().size(); dataIndex++) {
-                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
-                        builder.setSource(subscribeInstanceID);
-                        builder.setTableName(currentTable);
-                        builder.setDatabase(currentDB);
-                        builder.setOperationTime(new Date().getTime());
+                        SyncTaskBuilder builder = getBuilder(SyncOperation.OperationType.DELETE,
+                                subscribeInstanceID,
+                                currentTable,
+                                currentDB);
                         UuidBuilder uuidBuilder = new UuidBuilder();
-                        builder.setOperationType(SyncOperation.OperationType.DELETE);
+
 
                         Serializable[] values = deleteData.getRows().get(dataIndex);
                         for (int i = 0; i < table.getFieldList().size(); i++) {
-                            SchemaField field = table.getFieldList().get(i);
                             if (!updated.get(i)) {
                                 continue;
                             }
-                            Serializable value = values[i];
-                            if (field.isPrimary) {
-                                assert value != null;
-
-                                uuidBuilder.addValue(value.toString());
-                            }
-
-                            SyncOperation.SyncItem item = buildItem(field,
-                                    value,
+                            addItemToBuilder(table.getFieldList().get(i),
+                                    values[i],
                                     null,
-                                    SyncOperation.OperationType.DELETE);
-                            if (item.isIndex) {
-                                builder.addItem(item);
-                            } else if (item.hasChange()) {
-                                builder.addItem(item);
-                            }
+                                    values[i],
+                                    SyncOperation.OperationType.DELETE,
+                                    builder,
+                                    uuidBuilder);
                         }
                         builder.setUuid(uuidBuilder.build());
                         taskList.add(builder.build());
@@ -123,36 +100,24 @@ class BinLogEventParser {
                     BitSet created = writeData.getIncludedColumns();
                     for (int dataIndex = 0; dataIndex < writeData.getRows().size(); dataIndex++) {
 
-                        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
-                        builder.setSource(subscribeInstanceID);
-                        builder.setTableName(currentTable);
-                        builder.setDatabase(currentDB);
-                        builder.setOperationTime(new Date().getTime());
+                        SyncTaskBuilder builder = getBuilder(SyncOperation.OperationType.CREATE,
+                                subscribeInstanceID,
+                                currentTable,
+                                currentDB);
                         UuidBuilder uuidBuilder = new UuidBuilder();
-                        builder.setOperationType(SyncOperation.OperationType.CREATE);
 
                         Serializable[] values = writeData.getRows().get(dataIndex);
                         for (int i = 0; i < table.getFieldList().size(); i++) {
-                            SchemaField field = table.getFieldList().get(i);
                             if (!created.get(i)) {
                                 continue;
                             }
-                            Serializable value = values[i];
-                            if (field.isPrimary) {
-                                assert value != null;
-                                uuidBuilder.addValue(value.toString());
-                            }
-
-                            SyncOperation.SyncItem item = buildItem(field,
+                            addItemToBuilder(table.getFieldList().get(i),
                                     null,
-                                    value,
-                                    SyncOperation.OperationType.CREATE);
-
-                            if (item.isIndex) {
-                                builder.addItem(item);
-                            } else if (item.hasChange()) {
-                                builder.addItem(item);
-                            }
+                                    values[i],
+                                    values[i],
+                                    SyncOperation.OperationType.CREATE,
+                                    builder,
+                                    uuidBuilder);
                         }
                         builder.setUuid(uuidBuilder.build());
                         taskList.add(builder.build());
@@ -169,6 +134,45 @@ class BinLogEventParser {
 
         return taskList;
 
+    }
+
+    private void addItemToBuilder(SchemaField field,
+                                  Serializable oldValue,
+                                  Serializable newValue,
+                                  Serializable primaryValue,
+                                  SyncOperation.OperationType type,
+                                  SyncTaskBuilder builder,
+                                  UuidBuilder uuidBuilder) throws UnsupportedEncodingException {
+
+
+        if (field.isPrimary) {
+            assert primaryValue != null;
+            uuidBuilder.addValue(primaryValue.toString());
+        }
+
+        SyncOperation.SyncItem item = buildItem(field,
+                oldValue,
+                newValue,
+                type);
+
+        if (item.isIndex) {
+            builder.addItem(item);
+        } else if (item.hasChange()) {
+            builder.addItem(item);
+        }
+    }
+
+    private SyncTaskBuilder getBuilder(SyncOperation.OperationType type,
+                                       String subscribeInstanceID,
+                                       String currentTable,
+                                       String currentDB){
+        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+        builder.setSource(subscribeInstanceID);
+        builder.setTableName(currentTable);
+        builder.setDatabase(currentDB);
+        builder.setOperationTime(new Date().getTime());
+        builder.setOperationType(type);
+        return builder;
     }
 
     private SyncOperation.SyncItem buildItem(SchemaField field,
