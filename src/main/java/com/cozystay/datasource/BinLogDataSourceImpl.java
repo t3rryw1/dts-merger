@@ -143,7 +143,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                                 currentTable,
                                 currentDB);
                         nextTask:
-                        for(SyncTask task: tasks){
+                        for (SyncTask task : tasks) {
                             if (task == null) {
                                 continue;
                             }
@@ -152,9 +152,9 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                             }
                             schemaRuleCollection.removeBlacklisted(task.getOperations().get(0));
 
-                            for(SyncOperation.SyncItem item:task.getOperations().get(0).getSyncItems()){
+                            for (SyncOperation.SyncItem item : task.getOperations().get(0).getSyncItems()) {
                                 //if any syncitem has any change
-                                if (item.hasChange()){
+                                if (item.hasChange()) {
                                     consumeData(task);
                                     continue nextTask;
 
@@ -220,20 +220,18 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             client.setKeepAliveConnectTimeout(10000);
             String binlogFileName, binlogPosition;
             if (
-                    (binlogFileName = redisClient.get("binlogFile-" + this.subscribeInstanceID))
+                    ((binlogFileName = redisClient.get("binlogFile-" + this.subscribeInstanceID))
                             !=
-                            null
+                            null)
                             &&
-                            (binlogPosition = redisClient.get("binlogPosition-" + this.subscribeInstanceID))
+                            ((binlogPosition = redisClient.get("binlogPosition-" + this.subscribeInstanceID))
                                     !=
-                                    null) {
+                                    null)) {
                 client.setBinlogFilename(binlogFileName);
                 client.setBinlogPosition(Long.valueOf(binlogPosition));
             }
             client.connect(10000);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
+        } catch (IOException | TimeoutException e) {
             e.printStackTrace();
         }
     }
