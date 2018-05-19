@@ -1,7 +1,6 @@
 package com.cozystay.model;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -93,7 +92,8 @@ public class SyncTaskBuilder {
         }
         SyncTask task = new SyncTaskImpl(this.uuid,
                 this.database,
-                this.tableName);
+                this.tableName,
+                this.operationType);
         SyncOperation operation = new SyncOperationImpl(task,
                 this.operationType,
                 this.items,

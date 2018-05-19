@@ -14,6 +14,7 @@ import com.github.shyiko.mysql.binlog.event.WriteRowsEventData;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.*;
 
 class BinLogEventParser {
@@ -376,9 +377,18 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.UtilDate)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.UtilDate)) {
+                    Timestamp oldDate=null;
+                    if(oldValue!=null){
+                        oldDate = new Timestamp(((java.sql.Date)oldValue).getTime());
+                    }
+                    Timestamp newDate=null;
+                    if(newValue!=null){
+                        newDate = new Timestamp(((java.sql.Date)newValue).getTime());
+                    }
+
                     return new SyncOperation.SyncItem<>(field.columnName,
-                            oldValue,
-                            newValue,
+                            oldDate,
+                            newDate,
                             field.columnType,
                             field.isPrimary);
                 }

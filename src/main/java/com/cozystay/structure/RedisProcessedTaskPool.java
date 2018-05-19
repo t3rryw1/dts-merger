@@ -40,7 +40,9 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
         byte[] taskArray = encode(kryo, task);
         Transaction transaction = redisClient.multi();
         transaction.hset(DATA_HASH_KEY.getBytes(), task.getId().getBytes(), taskArray);
-        transaction.zadd(DATA_SET_KEY, new Date().getTime(), task.getId());
+        transaction.zadd(DATA_SET_KEY,
+                new Date().getTime(),
+                task.getId());
         transaction.exec();
 
     }

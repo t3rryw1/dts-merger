@@ -70,7 +70,7 @@ public class TestSchemaRuleCollection {
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>(fieldName1, "val1", "val2", SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>(fieldName2, "val1", "val2",SyncOperation.SyncItem.ColumnType.CHAR,true);
         List<SyncOperation.SyncItem> items = new ArrayList<>(Arrays.asList(item1, item2));
-        SyncTask task = new SyncTaskImpl("id-123", dbName, tableName);
+        SyncTask task = new SyncTaskImpl("id-123", dbName, tableName, SyncOperation.OperationType.UPDATE);
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));
 
         return new SyncOperationImpl(task,

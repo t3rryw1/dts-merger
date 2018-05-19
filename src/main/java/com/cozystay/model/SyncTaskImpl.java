@@ -13,6 +13,8 @@ public class SyncTaskImpl implements SyncTask {
 
     private final String uuid;
 
+    private final SyncOperation.OperationType type;
+
     private final List<SyncOperation> operations;
 
     SyncTaskImpl(){
@@ -20,19 +22,23 @@ public class SyncTaskImpl implements SyncTask {
         database = null;
         tableName = null;
         uuid = null;
+        type = SyncOperation.OperationType.CREATE;
         operations =new LinkedList<>();
+
     }
 
     public SyncTaskImpl(
             String uuid,
             String database,
-            String tableName) {
+            String tableName,
+            SyncOperation.OperationType type) {
 
         this.database = database;
         this.tableName = tableName;
 
         this.uuid = uuid;
         operations = new LinkedList<>();
+        this.type = type;
     }
 
     @Override
@@ -48,7 +54,10 @@ public class SyncTaskImpl implements SyncTask {
 
     @Override
     public String getId() {
-        return database +":"+ tableName +":"+ uuid;
+        return database +":"
+                + tableName +":"
+                + type +":"
+                + uuid;
     }
 
     @Override

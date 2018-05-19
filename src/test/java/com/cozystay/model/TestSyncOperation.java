@@ -13,7 +13,7 @@ public class TestSyncOperation {
 
     @Test
     public void testCreation(){
-        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
+        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("user_notes", "val1", "val2",SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operation = new SyncOperationImpl( task,
@@ -32,7 +32,7 @@ public class TestSyncOperation {
 
     @Test
     public void testSameOperation(){
-        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
+        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "xx",SyncOperation.SyncItem.ColumnType.CHAR,true);
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));
@@ -64,7 +64,7 @@ public class TestSyncOperation {
 
     @Test
     public void testStatus(){
-        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
+        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operation = new SyncOperationImpl( task,
@@ -80,7 +80,7 @@ public class TestSyncOperation {
 
     @Test
     public void testMerge(){
-        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user");
+        SyncTask task = new SyncTaskImpl("id-123", "cozystay_db", "user", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb",SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operation = new SyncOperationImpl( task,
@@ -111,7 +111,7 @@ public class TestSyncOperation {
         String originValue = "the string";
         String currentValue = "the newer string";
 
-        SyncTask task = new SyncTaskImpl("id-111", "cozystay_db", tableName);
+        SyncTask task = new SyncTaskImpl("id-111", "cozystay_db", tableName, SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem itemWithIndex = new SyncOperation.SyncItem<>(indexFieldName, originValue, currentValue,SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         SyncOperation operationCreate = new SyncOperationImpl( task,
@@ -158,7 +158,7 @@ public class TestSyncOperation {
         String originValue = "the string";
         String currentValue = "the newer string";
 
-        SyncTask task = new SyncTaskImpl("id-111", "cozystay_db", tableName);
+        SyncTask task = new SyncTaskImpl("id-111", "cozystay_db", tableName, SyncOperation.OperationType.CREATE);
 
         SyncOperation.SyncItem itemWithIndex1 = new SyncOperation.SyncItem<>(indexFieldName1, originValue, currentValue,SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem itemWithIndex2 = new SyncOperation.SyncItem<>(indexFieldName2, originValue, currentValue,SyncOperation.SyncItem.ColumnType.CHAR,true);
