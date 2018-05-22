@@ -112,7 +112,7 @@ public class SyncTaskImpl implements SyncTask {
     public SyncTask mergeStatus(SyncTask task) {
         List<SyncOperation> toMergeOps = task.getOperations();
         List<SyncOperation> selfOps = getOperations();
-        if(toMergeOps.size() > 1) {
+        if(toMergeOps.size() > 2) {
             logger.error("in this case task should not contain multiple operations, task: {}", task.getId());
             return null;
         }
