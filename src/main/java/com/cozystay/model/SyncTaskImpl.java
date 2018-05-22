@@ -1,12 +1,13 @@
 package com.cozystay.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class SyncTaskImpl implements SyncTask {
+
+    private static Logger logger = LoggerFactory.getLogger(SyncTaskImpl.class);
 
     private final String database;
     private final String tableName;
@@ -115,6 +116,41 @@ public class SyncTaskImpl implements SyncTask {
         });
         return this;
 
+    }
+
+    public SyncTask mergeStatus(SyncTask task) {
+        List<SyncOperation> toMergeOps = task.getOperations();
+        List<SyncOperation> selfOps = getOperations();
+        if(toMergeOps.size() > 1) {
+            logger.error("in this case task should not contain multiple operations, task: {}", task.getId());
+            return null;
+        }
+        selfOps.get(0).mergeStatus(toMergeOps.get(0));
+        return this;
+    }
+
+    public SyncTask deepMerge(SyncTask task) {
+        SyncOperation toMergeOp = task.getOperations().get(0);
+        SyncOperation selfOps = getOperations().get(0);
+        if (!toMergeOp.getSource().equals(selfOps.getSource())) {
+            return null;
+        }
+        Map fields = new HashMap<>();
+        for (SyncOperation.SyncItem toMergeItem : toMergeOp.getSyncItems()) {
+            fields.put(toMergeItem.fieldName, toMergeItem);
+        }
+        for (SyncOperation.SyncItem selfItem : selfOps.getSyncItems()) {
+            if (fields.containsKey(selfItem.fieldName)) {
+                SyncOperation.SyncItem item = (SyncOperation.SyncItem) fields.get(selfItem.fieldName);
+                SyncOperation.SyncItem mergedItem = selfItem.mergeItem(item);
+                fields.put(selfItem.fieldName, mergedItem);
+            } else {
+                fields.put(selfItem.fieldName, selfItem);
+            }
+        }
+        List<SyncOperation.SyncItem> items = new ArrayList<SyncOperation.SyncItem>(fields.values());
+        selfOps.updateItems(items);
+        return this;
     }
 
     public void addOperation(SyncOperation operation) {

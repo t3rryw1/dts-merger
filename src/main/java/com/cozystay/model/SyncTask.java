@@ -8,6 +8,10 @@ public interface SyncTask extends Cloneable {
 
     SyncTask merge(SyncTask task);
 
+    SyncTask mergeStatus(SyncTask task);
+
+    SyncTask deepMerge(SyncTask task);
+
     String getId();
 
     String getDatabase();
