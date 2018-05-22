@@ -11,10 +11,11 @@ public class SyncOperationImpl implements SyncOperation {
     private List<SyncItem> syncItems;
     private final Map<String, SyncStatus> syncStatusMap;
     private final Long operationTime;
+    private final String source;
 
 
     SyncOperationImpl() {
-
+        source = "";
         operationType = null;
         syncItems = new ArrayList<>();
         syncStatusMap = new HashMap<>();
@@ -31,6 +32,7 @@ public class SyncOperationImpl implements SyncOperation {
         this.operationType = operationType;
         this.syncItems = syncItems;
         this.operationTime = operationTime;
+        this.source = source;
         this.syncStatusMap = new HashMap<>();
         for (String sourceName : sourceList) {
             syncStatusMap.put(sourceName, SyncStatus.INIT);
@@ -71,6 +73,8 @@ public class SyncOperationImpl implements SyncOperation {
     public List<SyncItem> getSyncItems() {
         return syncItems;
     }
+
+    public String getSource() { return this.source; }
 
     @Override
     public Map<String, SyncStatus> getSyncStatus() {
@@ -172,6 +176,10 @@ public class SyncOperationImpl implements SyncOperation {
     public void updateStatus(String source, SyncStatus status) {
         this.syncStatusMap.put(source, status);
 
+    }
+
+    public void updateItems(List<SyncItem> items) {
+        this.syncItems = items;
     }
 
     @Override
