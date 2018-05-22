@@ -26,6 +26,14 @@ public class TestSyncItem {
     }
 
     @Test
+    public void testMergeItem() {
+        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem mergedItem = item1.mergeItem(item2);
+        Assert.assertEquals(mergedItem.currentValue, item2.currentValue);
+    }
+
+    @Test
     public void testEqualNull() {
         SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", null, "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc", null, "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);

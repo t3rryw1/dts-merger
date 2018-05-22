@@ -19,6 +19,8 @@ public interface SyncOperation {
 
     List<SyncItem> getSyncItems();
 
+    String getSource();
+
     Map<String, SyncStatus> getSyncStatus();
 
     String buildSql();
@@ -26,6 +28,8 @@ public interface SyncOperation {
     boolean isSameOperation(SyncOperation operation);
 
     void updateStatus(String source, SyncStatus status);
+
+    void  updateItems(List<SyncOperation.SyncItem> items);
 
     boolean shouldSendToSource(String name);
 
@@ -107,6 +111,16 @@ public interface SyncOperation {
                     .append(fieldType)
                     .append(isIndex)
                     .toHashCode();
+        }
+
+        public SyncItem mergeItem(SyncItem<T> item) {
+            return new SyncItem<>(
+                    this.fieldName,
+                    this.originValue,
+                    item.currentValue,
+                    this.fieldType,
+                    this.isIndex
+            );
         }
 
         String originValueToString() {
