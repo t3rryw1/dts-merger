@@ -31,11 +31,15 @@ public interface SyncOperation {
 
     void  updateItems(List<SyncOperation.SyncItem> items);
 
+    void reduceItems();
+
     boolean shouldSendToSource(String name);
 
     void setSourceSend(String name);
 
     void mergeStatus(SyncOperation toMergeOp);
+
+    void deepMerge(SyncOperation toMergeOp);
 
     boolean allSourcesCompleted();
 
