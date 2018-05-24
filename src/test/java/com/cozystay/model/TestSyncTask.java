@@ -14,6 +14,7 @@ public class TestSyncTask {
 
     @Before
     public void setUp(){
+        System.setProperty("COZ_MERGE_HOME", "..");
         System.out.println("set up " + this.getClass().getName());
     }
     @Test
@@ -82,7 +83,13 @@ public class TestSyncTask {
     public void testDeepMerge(){
         SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table");
         SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>(
+                "name",
+                "aa",
+                "bb",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true
+        );
         SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem item3 = new SyncOperation.SyncItem<>("xxxx", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,false);
         SyncOperation.SyncItem item4 = new SyncOperation.SyncItem<>("xxxx", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,false);
@@ -105,6 +112,46 @@ public class TestSyncTask {
 
         Assert.assertEquals(itemList.get(0).currentValue, "dd");
         Assert.assertEquals(itemList.get(1).currentValue, "dd");
+    }
+
+    @Test
+    public void testMultipleTask(){
+        SyncTask task1 = new SyncTaskImpl(
+                "uuid",
+                "database",
+                "user_profile"
+        );
+        SyncOperation.SyncItem itemEditName1 = new SyncOperation.SyncItem<>(
+                "nick_name",
+                "artour",
+                "lanaya",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true
+        );
+        SyncOperation.SyncItem itemEditFirstName1 = new SyncOperation.SyncItem<>(
+                "first_name",
+                "tang",
+                "mag",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                false
+        );
+        SyncOperation.SyncItem itemEditLastName1 = new SyncOperation.SyncItem<>(
+                "last_name",
+                "jing min",
+                "artour",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                false
+        );
+        task1.addOperation(new SyncOperationImpl(
+                null,
+                SyncOperation.OperationType.UPDATE,
+                new ArrayList<>(Arrays.asList(itemEditName1, itemEditFirstName1, itemEditLastName1)),
+                ".com",
+                new ArrayList<>(Arrays.asList(".com", ".cn")),
+                new Date().getTime()
+        ));
+
+        
     }
 
 
