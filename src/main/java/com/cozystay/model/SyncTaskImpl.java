@@ -113,10 +113,12 @@ public class SyncTaskImpl implements SyncTask {
         List<SyncOperation> toMergeOps = task.getOperations();
         List<SyncOperation> selfOps = getOperations();
         SyncOperation toMergeOp = toMergeOps.get(0);
+
         if(toMergeOps.size() >= 2) {
             logger.error("in this case task should not contain multiple operations, task: {}", task.getId());
             return null;
         }
+
         for (SyncOperation operation : selfOps) {
             if (toMergeOp.isSameOperation(operation)) {
                 operation.mergeStatus(toMergeOp);
@@ -128,26 +130,11 @@ public class SyncTaskImpl implements SyncTask {
 
     public SyncTask deepMerge(SyncTask task) {
         SyncOperation toMergeOp = task.getOperations().get(0);
-        SyncOperation selfOps = getOperations().get(0);
-        if (!toMergeOp.getSource().equals(selfOps.getSource())) {
-            logger.error("can not merge task from different source, task: {}", task.getId());
-            return task;
+        List<SyncOperation> selfOps = getOperations();
+
+        for (SyncOperation selfOp : selfOps) {
+            selfOp.deepMerge(toMergeOp);
         }
-        Map<String, SyncOperation.SyncItem> fields = new HashMap<>();
-        for (SyncOperation.SyncItem toMergeItem : toMergeOp.getSyncItems()) {
-            fields.put(toMergeItem.fieldName, toMergeItem);
-        }
-        for (SyncOperation.SyncItem selfItem : selfOps.getSyncItems()) {
-            if (fields.containsKey(selfItem.fieldName)) {
-                SyncOperation.SyncItem item = fields.get(selfItem.fieldName);
-                SyncOperation.SyncItem mergedItem = selfItem.mergeItem(item);
-                fields.put(selfItem.fieldName, mergedItem);
-            } else {
-                fields.put(selfItem.fieldName, selfItem);
-            }
-        }
-        List<SyncOperation.SyncItem> items = new ArrayList<>(fields.values());
-        selfOps.updateItems(items);
         return this;
     }
 

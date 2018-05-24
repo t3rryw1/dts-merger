@@ -2,10 +2,15 @@ package com.cozystay.model;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class SyncOperationImpl implements SyncOperation {
+
+    private static Logger logger = LoggerFactory.getLogger(SyncOperationImpl.class);
+
     private SyncTask task;
     private final OperationType operationType;
     private List<SyncItem> syncItems;
@@ -182,6 +187,14 @@ public class SyncOperationImpl implements SyncOperation {
         this.syncItems = items;
     }
 
+    public void reduceItems() {
+        for ( SyncItem item : this.syncItems ) {
+            if (!item.hasChange() && !item.isIndex) {
+                this.syncItems.remove(item);
+            }
+        }
+    }
+
     @Override
     public boolean shouldSendToSource(String name) {
         return this.syncStatusMap.get(name).equals(SyncStatus.INIT);
@@ -202,6 +215,36 @@ public class SyncOperationImpl implements SyncOperation {
             }
         }
 
+    }
+
+    @Override
+    public void deepMerge(SyncOperation toMergeOp) {
+        if (!toMergeOp.getSource().equals(getSource())) {
+            logger.error("can not merge operation from different source, operation: {}", toString());
+            return;
+        }
+
+        Map<String, SyncItem> fields = new HashMap<>();
+        for (SyncItem toMergeItem : toMergeOp.getSyncItems()) {
+            fields.put(toMergeItem.fieldName, toMergeItem);
+        }
+        for (SyncItem selfItem : getSyncItems())
+            if (fields.containsKey(selfItem.fieldName)) {
+                SyncItem item = fields.get(selfItem.fieldName);
+
+                if (toMergeOp.getTime() > getTime()) {
+                    SyncItem mergedItem = selfItem.mergeItem(item);
+                    fields.put(selfItem.fieldName, mergedItem);
+                } else {
+                    SyncItem mergedItem = item.mergeItem(selfItem);
+                    fields.put(selfItem.fieldName, mergedItem);
+                }
+            } else {
+                fields.put(selfItem.fieldName, selfItem);
+            }
+        List<SyncItem> items = new ArrayList<>(fields.values());
+        updateItems(items);
+        reduceItems();
     }
 
     @Override
