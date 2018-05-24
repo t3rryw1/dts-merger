@@ -15,7 +15,7 @@ public class SyncOperationImpl implements SyncOperation {
 
 
     SyncOperationImpl() {
-        source = "";
+        source = null;
         operationType = null;
         syncItems = new ArrayList<>();
         syncStatusMap = new HashMap<>();
