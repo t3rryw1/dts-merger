@@ -113,7 +113,7 @@ public interface SyncOperation {
                     .toHashCode();
         }
 
-        public SyncItem mergeItem(SyncItem<T> item) {
+        SyncItem mergeItem(SyncItem item) {
             return new SyncItem<>(
                     this.fieldName,
                     this.originValue,
