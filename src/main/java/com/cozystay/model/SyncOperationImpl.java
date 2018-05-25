@@ -188,9 +188,15 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     public void reduceItems() {
+        Map<String, Boolean> fields = new HashMap<>();
         for ( SyncItem item : this.syncItems ) {
             if (!item.hasChange() && !item.isIndex) {
                 this.syncItems.remove(item);
+            }
+            if (fields.get(item.fieldName)) {
+                this.syncItems.remove(item);
+            } else {
+                fields.put(item.fieldName, true);
             }
         }
     }
