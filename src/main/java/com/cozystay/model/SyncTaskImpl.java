@@ -110,16 +110,13 @@ public class SyncTaskImpl implements SyncTask {
     }
 
     public SyncTask mergeStatus(SyncTask task) {
-        List<SyncOperation> toMergeOps = task.getOperations();
-        List<SyncOperation> selfOps = getOperations();
-        SyncOperation toMergeOp = toMergeOps.get(0);
-
-        if(toMergeOps.size() >= 2) {
+        if(task.getOperations().size() > 1) {
             logger.error("in this case task should not contain multiple operations, task: {}", task.getId());
             return null;
         }
 
-        for (SyncOperation operation : selfOps) {
+        SyncOperation toMergeOp = task.getOperations().get(0);
+        for (SyncOperation operation : getOperations()) {
             if (toMergeOp.isSameOperation(operation)) {
                 operation.mergeStatus(toMergeOp);
                 break;
@@ -132,8 +129,15 @@ public class SyncTaskImpl implements SyncTask {
         SyncOperation toMergeOp = task.getOperations().get(0);
         List<SyncOperation> selfOps = getOperations();
 
+        Boolean merged = false;
         for (SyncOperation selfOp : selfOps) {
-            selfOp.deepMerge(toMergeOp);
+            if (toMergeOp.getSource().equals(selfOp.getSource())){
+                merged = true;
+                selfOp.deepMerge(toMergeOp);
+            }
+        }
+        if (!merged) {
+            addOperation(toMergeOp);
         }
         return this;
     }

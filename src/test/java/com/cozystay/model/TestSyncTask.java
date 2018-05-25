@@ -80,16 +80,10 @@ public class TestSyncTask {
     }
 
     @Test
-    public void testDeepMerge(){
+    public void testDeepMerge() throws InterruptedException {
         SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table");
         SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>(
-                "name",
-                "aa",
-                "bb",
-                SyncOperation.SyncItem.ColumnType.CHAR,
-                true
-        );
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR, true);
         SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem item3 = new SyncOperation.SyncItem<>("xxxx", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,false);
         SyncOperation.SyncItem item4 = new SyncOperation.SyncItem<>("xxxx", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,false);
@@ -99,6 +93,9 @@ public class TestSyncTask {
                 "source1",
                 new ArrayList<>(Arrays.asList("source1", "source2")),
                 new Date().getTime()));
+
+        Thread.sleep(50);
+
         task2.addOperation(new SyncOperationImpl(null,
                 SyncOperation.OperationType.CREATE,
                 new ArrayList<>(Arrays.asList(item2, item4)),
