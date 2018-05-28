@@ -15,6 +15,7 @@ import java.util.Properties;
 public class TestMessageParser {
     @Before
     public void setUp() {
+        System.setProperty("COZ_MERGE_HOME", "..");
         System.out.println("set up " + this.getClass().getName());
     }
 

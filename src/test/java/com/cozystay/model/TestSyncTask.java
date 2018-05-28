@@ -81,8 +81,8 @@ public class TestSyncTask {
 
     @Test
     public void testDeepMerge() throws InterruptedException {
-        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table");
+        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
+        SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR, true);
         SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem item3 = new SyncOperation.SyncItem<>("xxxx", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,false);
@@ -116,7 +116,8 @@ public class TestSyncTask {
         SyncTask task1 = new SyncTaskImpl(
                 "uuid",
                 "database",
-                "user_profile"
+                "user_profile",
+                SyncOperation.OperationType.UPDATE
         );
         SyncOperation.SyncItem itemEditName1 = new SyncOperation.SyncItem<>(
                 "nick_name",

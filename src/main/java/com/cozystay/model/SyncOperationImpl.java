@@ -195,7 +195,7 @@ public class SyncOperationImpl implements SyncOperation {
             if (!item.hasChange() && !item.isIndex) {
                 items.remove();
             }
-            if (fields.get(item.fieldName)) {
+            if (fields.containsKey(item.fieldName)) {
                 items.remove();
             } else {
                 fields.put(item.fieldName, true);
