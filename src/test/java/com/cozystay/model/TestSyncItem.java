@@ -8,6 +8,7 @@ import org.junit.Test;
 public class TestSyncItem {
     @Before
     public void setUp() {
+        System.setProperty("COZ_MERGE_HOME", "..");
         System.out.println("set up " + this.getClass().getName());
     }
 

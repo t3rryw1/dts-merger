@@ -11,11 +11,6 @@ public class TestSyncTaskBuilder {
     public void setUp(){
         System.out.println("set up " + this.getClass().getName());
     }
-    @Test
-    public void testBuilder(){
-        SyncTaskBuilder taskuilder = SyncTaskBuilder.getInstance();
-    }
-
 
     @After
     public void tearDown(){
