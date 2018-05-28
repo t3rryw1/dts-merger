@@ -159,6 +159,10 @@ public class SyncOperationImpl implements SyncOperation {
         return StringUtils.join(conditions.toArray(), " and ");
     }
 
+    private void updateItems(List<SyncItem> items) {
+        this.syncItems = items;
+    }
+
     @Override
     public boolean isSameOperation(SyncOperation operation) {
         if (!operation.getOperationType().equals(this.getOperationType()))
@@ -181,10 +185,6 @@ public class SyncOperationImpl implements SyncOperation {
     public void updateStatus(String source, SyncStatus status) {
         this.syncStatusMap.put(source, status);
 
-    }
-
-    public void updateItems(List<SyncItem> items) {
-        this.syncItems = items;
     }
 
     public void reduceItems() {
