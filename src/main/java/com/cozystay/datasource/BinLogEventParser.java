@@ -121,7 +121,9 @@ class BinLogEventParser {
                                     uuidBuilder);
                         }
                         builder.setUuid(uuidBuilder.build());
-                        taskList.add(builder.build());
+                        SyncTask task = builder.build();
+                        task.firstOperation().reduceItems();
+                        taskList.add(task);
 
                     }
                     break;
@@ -166,8 +168,8 @@ class BinLogEventParser {
     private SyncTaskBuilder getBuilder(SyncOperation.OperationType type,
                                        String subscribeInstanceID,
                                        String currentTable,
-                                       String currentDB){
-        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+                                       String currentDB) {
+        SyncTaskBuilder builder = new SyncTaskBuilder();
         builder.setSource(subscribeInstanceID);
         builder.setTableName(currentTable);
         builder.setDatabase(currentDB);
@@ -377,13 +379,13 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.UtilDate)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.UtilDate)) {
-                    Timestamp oldDate=null;
-                    if(oldValue!=null){
-                        oldDate = new Timestamp(((java.sql.Date)oldValue).getTime());
+                    Timestamp oldDate = null;
+                    if (oldValue != null) {
+                        oldDate = new Timestamp(((java.sql.Date) oldValue).getTime());
                     }
-                    Timestamp newDate=null;
-                    if(newValue!=null){
-                        newDate = new Timestamp(((java.sql.Date)newValue).getTime());
+                    Timestamp newDate = null;
+                    if (newValue != null) {
+                        newDate = new Timestamp(((java.sql.Date) newValue).getTime());
                     }
 
                     return new SyncOperation.SyncItem<>(field.columnName,

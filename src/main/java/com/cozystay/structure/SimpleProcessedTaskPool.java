@@ -49,6 +49,16 @@ public class SimpleProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
+    public SyncTask peek() {
+        String taskId = idQueue.peek();
+        if(taskId!=null){
+            return taskMap.get(taskId);
+        }else{
+            return null;
+        }
+    }
+
+    @Override
     public SyncTask get(String taskId) {
         return taskMap.get(taskId);
     }
