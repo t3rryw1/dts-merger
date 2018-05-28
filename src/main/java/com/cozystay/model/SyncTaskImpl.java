@@ -3,7 +3,10 @@ package com.cozystay.model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 
 public class SyncTaskImpl implements SyncTask {
 
@@ -18,13 +21,13 @@ public class SyncTaskImpl implements SyncTask {
 
     private final List<SyncOperation> operations;
 
-    SyncTaskImpl(){
+    SyncTaskImpl() {
 
         database = null;
         tableName = null;
         uuid = null;
         type = SyncOperation.OperationType.CREATE;
-        operations =new LinkedList<>();
+        operations = new LinkedList<>();
 
     }
 
@@ -43,9 +46,9 @@ public class SyncTaskImpl implements SyncTask {
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         String operationStr = "";
-        for(SyncOperation operation : this.operations){
+        for (SyncOperation operation : this.operations) {
             operationStr = operationStr + "\t" + operation.toString();
         }
         return String.format("id: %s; operations: %s",
@@ -55,9 +58,9 @@ public class SyncTaskImpl implements SyncTask {
 
     @Override
     public String getId() {
-        return database +":"
-                + tableName +":"
-                + type +":"
+        return database + ":"
+                + tableName + ":"
+                + type + ":"
                 + uuid;
     }
 
@@ -87,6 +90,25 @@ public class SyncTaskImpl implements SyncTask {
     }
 
     @Override
+    public boolean canMergeStatus(SyncOperation toMergeOp) {
+
+        for (SyncOperation operation : getOperations()) {
+            if (toMergeOp.isSameOperation(operation)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public SyncOperation firstOperation() {
+        if (getOperations().size() < 1) {
+            return null;
+        }
+        return getOperations().get(0);
+    }
+
+    @Override
     public SyncTask merge(SyncTask task) {
         if (!task.getId().equals(this.getId())) {
             return null;
@@ -107,11 +129,11 @@ public class SyncTaskImpl implements SyncTask {
         Collections.sort(this.operations, new Comparator<SyncOperation>() {
             @Override
             public int compare(SyncOperation o1, SyncOperation o2) {
-                if(!o1.getOperationType().equals(o2.getOperationType())){
+                if (!o1.getOperationType().equals(o2.getOperationType())) {
                     return o1.getOperationType().compareTo(o2.getOperationType());
                     //
                 }
-                return o1.getTime()>(o2.getTime())?1:-1;
+                return o1.getTime() > (o2.getTime()) ? 1 : -1;
             }
         });
         return this;
@@ -119,7 +141,7 @@ public class SyncTaskImpl implements SyncTask {
     }
 
     public SyncTask mergeStatus(SyncTask task) {
-        if(task.getOperations().size() > 1) {
+        if (task.getOperations().size() > 1) {
             logger.error("in this case task should not contain multiple operations, task: {}", task.getId());
             return null;
         }
@@ -140,7 +162,7 @@ public class SyncTaskImpl implements SyncTask {
 
         Boolean merged = false;
         for (SyncOperation selfOp : selfOps) {
-            if (toMergeOp.getSource().equals(selfOp.getSource())){
+            if (toMergeOp.getSource().equals(selfOp.getSource())) {
                 merged = true;
                 selfOp.deepMerge(toMergeOp);
             }

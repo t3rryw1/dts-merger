@@ -6,6 +6,10 @@ public interface SyncTask extends Cloneable {
 
     boolean allOperationsCompleted();
 
+    boolean canMergeStatus(SyncOperation operation);
+
+    SyncOperation firstOperation();
+
     SyncTask merge(SyncTask task);
 
     SyncTask mergeStatus(SyncTask task);
