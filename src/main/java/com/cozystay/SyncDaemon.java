@@ -34,7 +34,7 @@ public class SyncDaemon implements Daemon {
     private static void onInit(DaemonContext daemonContext) throws Exception {
         logger.info("DB Sync primaryRunner launched");
         Properties prop = new Properties();
-        prop.load(SyncMain.class.getResourceAsStream("/db-config.properties"));
+        prop.load(SyncDaemon.class.getResourceAsStream("/db-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
         logger.info("Running with {} threads", threadNumber);
 
