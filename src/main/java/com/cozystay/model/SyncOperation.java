@@ -29,8 +29,6 @@ public interface SyncOperation {
 
     void updateStatus(String source, SyncStatus status);
 
-    void  updateItems(List<SyncOperation.SyncItem> items);
-
     void reduceItems();
 
     boolean shouldSendToSource(String name);
