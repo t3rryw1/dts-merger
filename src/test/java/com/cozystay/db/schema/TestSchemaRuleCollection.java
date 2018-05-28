@@ -1,6 +1,6 @@
 package com.cozystay.db.schema;
 
-import com.cozystay.SyncMain;
+import com.cozystay.SyncDaemon;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncOperationImpl;
 import com.cozystay.model.SyncTask;
@@ -53,7 +53,7 @@ public class TestSchemaRuleCollection {
 
     private SchemaRuleCollection loadProperties() throws IOException {
         Properties prop = new Properties();
-        prop.load(SyncMain.class.getResourceAsStream("/test-filter.properties"));
+        prop.load(SyncDaemon.class.getResourceAsStream("/test-filter.properties"));
         return SchemaRuleCollection.loadRules(prop);
 
     }

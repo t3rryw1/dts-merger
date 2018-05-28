@@ -85,8 +85,7 @@ public class SyncTaskBuilder {
                 this.database,
                 this.tableName,
                 this.operationType);
-        List<String> copiedList = new LinkedList<>();
-        Collections.copy(copiedList,sourceList);
+        List<String> copiedList = new LinkedList<>(sourceList);
         SyncOperation operation = new SyncOperationImpl(task,
                 this.operationType,
                 this.items,
