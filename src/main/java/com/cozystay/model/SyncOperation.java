@@ -4,11 +4,9 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public interface SyncOperation {
-
     String toString();
 
     SyncTask getTask();
@@ -31,13 +29,87 @@ public interface SyncOperation {
 
     void reduceItems();
 
+    SyncItem removeItemByFieldName(String fieldName);
+
     boolean shouldSendToSource(String name);
 
     void setSourceSend(String name);
 
     void mergeStatus(SyncOperation toMergeOp);
 
-    void deepMerge(SyncOperation toMergeOp);
+    SyncOperation deepMerge(SyncOperation toMergeOp);
+
+    static SyncOperation deepMergeFromSameSource(List<SyncOperation> sameOps) {
+        Collections.sort(sameOps, new Comparator<SyncOperation>() {
+            @Override
+            public int compare(SyncOperation o1, SyncOperation o2) {
+                return o1.getTime() > (o2.getTime()) ? -1 : 1;
+            }
+        });
+
+        SyncOperation sameOp;
+        SyncOperation acc = null;
+        //reduce
+        for (SyncOperation operation : sameOps) {
+            if(acc == null){
+                acc = operation;
+            }
+            acc = acc.deepMerge(operation);
+        }
+        sameOp = acc;
+        return sameOp;
+    }
+
+    static SyncOperation getOverWroteOpFromDiffSource(List<SyncOperation> diffOps) {
+        Collections.sort(diffOps, new Comparator<SyncOperation>() {
+            @Override
+            public int compare(SyncOperation o1, SyncOperation o2) {
+                return o1.getTime() > (o2.getTime()) ? -1 : 1;
+            }
+        });
+
+
+        /* I did not consider about if sourceList are different from each operations, it may cause problems.
+         * by default, a operation will send to every source (except where they comes from).
+         */
+        Map<String, Integer> fieldCount = new HashMap<>();
+        for (SyncOperation operation : diffOps) {
+            for (SyncItem item : operation.getSyncItems()) {
+                if (fieldCount.containsKey(item.fieldName)) {
+                    fieldCount.put(item.fieldName, fieldCount.get(item.fieldName) + 1);
+                } else {
+                    fieldCount.put(item.fieldName, 1);
+                }
+            }
+        }
+
+        List<SyncItem> splitItems =  new ArrayList<>();
+        for (Map.Entry<String, Integer> field : fieldCount.entrySet()) {
+            if (field.getValue() > 1) {
+                for (SyncOperation operation : diffOps) {
+                    //remove item from operation & add it to list
+                    SyncItem item = operation.removeItemByFieldName(field.getKey());
+                    if (item != null) {
+                        splitItems.add(item);
+                    }
+                }
+            }
+        }
+
+        SyncOperation splitOp = new SyncOperationImpl(
+                null,
+                diffOps.get(0).getOperationType(),
+                splitItems,
+                diffOps.get(0).getSource(),
+                new ArrayList<>(diffOps.get(0).getSyncStatus().keySet()),
+                new Date().getTime());
+
+        //reset source to INIT
+        splitOp.updateStatus(diffOps.get(0).getSource(), SyncStatus.INIT);
+        splitOp.reduceItems();
+
+        return splitOp;
+    }
 
     boolean allSourcesCompleted();
 
