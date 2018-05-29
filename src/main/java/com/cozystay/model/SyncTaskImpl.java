@@ -2,11 +2,8 @@ package com.cozystay.model;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
+import com.cozystay.model.SyncOperation;
+import java.util.*;
 
 public class SyncTaskImpl implements SyncTask {
 
@@ -157,20 +154,33 @@ public class SyncTaskImpl implements SyncTask {
     }
 
     public SyncTask deepMerge(SyncTask task) {
-        SyncOperation toMergeOp = task.getOperations().get(0);
-        List<SyncOperation> selfOps = getOperations();
+        List<SyncOperation> allOps = new ArrayList<>();
+        allOps.addAll(task.getOperations());
+        allOps.addAll(getOperations());
 
-        Boolean merged = false;
-        for (SyncOperation selfOp : selfOps) {
-            if (toMergeOp.getSource().equals(selfOp.getSource())) {
-                merged = true;
-                selfOp.deepMerge(toMergeOp);
+        Map<String, List<SyncOperation>> sources = new HashMap<>();
+
+        for (SyncOperation operation : allOps) {
+            String sourceName = operation.getSource();
+            if(sources.containsKey(sourceName)){
+                sources.get(sourceName).add(operation);
+            }else{
+                sources.put(sourceName, new ArrayList<>(Arrays.asList(operation)));
             }
         }
-        if (!merged) {
-            addOperation(toMergeOp);
+
+        SyncTask mergedTask = new SyncTaskImpl(uuid, database, tableName, type);
+
+        for (Map.Entry<String, List<SyncOperation>> source : sources.entrySet()) {
+            SyncOperation op = SyncOperation.deepMergeFromSameSource(source.getValue());
+            mergedTask.addOperation(op);
         }
-        return this;
+
+        List<SyncOperation> concatOps = mergedTask.getOperations();
+        SyncOperation splitOp = SyncOperation.getOverWroteOpFromDiffSource(concatOps);
+        mergedTask.addOperation(splitOp);
+
+        return mergedTask;
     }
 
     public void addOperation(SyncOperation operation) {

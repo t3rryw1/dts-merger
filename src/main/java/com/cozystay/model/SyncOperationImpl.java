@@ -79,6 +79,17 @@ public class SyncOperationImpl implements SyncOperation {
         return syncItems;
     }
 
+    @Override
+    public SyncItem removeItemByFieldName(String fieldName) {
+        for (SyncItem item : syncItems) {
+            if (item.fieldName.equals(fieldName)) {
+                syncItems.remove(item);
+                return item;
+            }
+        }
+        return null;
+    }
+
     public String getSource() { return this.source; }
 
     @Override
@@ -226,12 +237,7 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
-    public void deepMerge(SyncOperation toMergeOp) {
-        if (!toMergeOp.getSource().equals(getSource())) {
-            logger.error("can not merge operation from different source, operation: {}", toString());
-            return;
-        }
-
+    public SyncOperation deepMerge(SyncOperation toMergeOp) {
         Map<String, SyncItem> fields = new HashMap<>();
         for (SyncItem toMergeItem : toMergeOp.getSyncItems()) {
             fields.put(toMergeItem.fieldName, toMergeItem);
@@ -253,6 +259,7 @@ public class SyncOperationImpl implements SyncOperation {
         List<SyncItem> items = new ArrayList<>(fields.values());
         updateItems(items);
         reduceItems();
+        return this;
     }
 
     @Override
