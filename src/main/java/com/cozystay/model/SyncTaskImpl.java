@@ -3,6 +3,7 @@ package com.cozystay.model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.*;
+import com.cozystay.model.SyncOperation.SyncStatus;
 
 public class SyncTaskImpl implements SyncTask {
 
@@ -228,6 +229,8 @@ public class SyncTaskImpl implements SyncTask {
                     }
                 }
                 //merge this conflict operations and put it back
+                SyncOperation mergedOps = deepMergeOps(needMergeOps);
+                mergedOps.updateStatus(mergedOps.getSource(), SyncStatus.INIT);
                 diffOps.add(deepMergeOps(needMergeOps));
             }
         }
