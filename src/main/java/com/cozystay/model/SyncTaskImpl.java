@@ -2,7 +2,6 @@ package com.cozystay.model;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.cozystay.model.SyncOperation;
 import java.util.*;
 
 public class SyncTaskImpl implements SyncTask {
@@ -172,15 +171,72 @@ public class SyncTaskImpl implements SyncTask {
         SyncTask mergedTask = new SyncTaskImpl(uuid, database, tableName, type);
 
         for (Map.Entry<String, List<SyncOperation>> source : sources.entrySet()) {
-            SyncOperation op = SyncOperation.deepMergeFromSameSource(source.getValue());
+            SyncOperation op = deepMergeFromSameSource(source.getValue());
             mergedTask.addOperation(op);
         }
 
         List<SyncOperation> concatOps = mergedTask.getOperations();
-        SyncOperation splitOp = SyncOperation.getOverWroteOpFromDiffSource(concatOps);
+        SyncOperation splitOp = getOverWroteOpFromDiffSource(concatOps);
         mergedTask.addOperation(splitOp);
 
         return mergedTask;
+    }
+
+    private SyncOperation deepMergeFromSameSource(List<SyncOperation> sameOps) {
+        sameOps.sort((o1, o2) -> o1.getTime() > (o2.getTime()) ? -1 : 1);
+
+        SyncOperation acc = null;
+        //reduce
+        for (SyncOperation operation : sameOps) {
+            if(acc == null){
+                acc = operation;
+                continue;
+            }
+            acc = acc.deepMerge(operation);
+        }
+        return acc;
+    }
+
+    private SyncOperation getOverWroteOpFromDiffSource(List<SyncOperation> diffOps) {
+        diffOps.sort((o1, o2) -> o1.getTime() > (o2.getTime()) ? -1 : 1);
+
+        Map<String, Integer> fieldCount = new HashMap<>();
+        for (SyncOperation operation : diffOps) {
+            for (SyncOperation.SyncItem item : operation.getSyncItems()) {
+                if (fieldCount.containsKey(item.fieldName)) {
+                    fieldCount.put(item.fieldName, fieldCount.get(item.fieldName) + 1);
+                } else {
+                    fieldCount.put(item.fieldName, 1);
+                }
+            }
+        }
+
+        List<SyncOperation.SyncItem> splitItems =  new ArrayList<>();
+        for (Map.Entry<String, Integer> field : fieldCount.entrySet()) {
+            if (field.getValue() > 1) {
+                for (SyncOperation operation : diffOps) {
+                    //remove item from operation & add it to list
+                    SyncOperation.SyncItem item = operation.removeItemByFieldName(field.getKey());
+                    if (item != null) {
+                        splitItems.add(item);
+                    }
+                }
+            }
+        }
+
+        SyncOperation splitOp = new SyncOperationImpl(
+                null,
+                diffOps.get(0).getOperationType(),
+                splitItems,
+                diffOps.get(0).getSource(),
+                new ArrayList<>(diffOps.get(0).getSyncStatus().keySet()),
+                new Date().getTime());
+
+        //reset source to INIT
+        splitOp.updateStatus(diffOps.get(0).getSource(), SyncOperation.SyncStatus.INIT);
+        splitOp.reduceItems();
+
+        return splitOp;
     }
 
     public void addOperation(SyncOperation operation) {
