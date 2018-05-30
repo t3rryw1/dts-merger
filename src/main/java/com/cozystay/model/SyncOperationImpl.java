@@ -81,9 +81,11 @@ public class SyncOperationImpl implements SyncOperation {
 
     @Override
     public SyncItem removeItemByFieldName(String fieldName) {
-        for (SyncItem item : syncItems) {
+        Iterator<SyncItem> items = syncItems.iterator();
+        while (items.hasNext()) {
+            SyncItem item = items.next();
             if (item.fieldName.equals(fieldName)) {
-                syncItems.remove(item);
+                items.remove();
                 return item;
             }
         }
