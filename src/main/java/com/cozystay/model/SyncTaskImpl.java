@@ -205,6 +205,11 @@ public class SyncTaskImpl implements SyncTask {
         Map<String, Integer> fieldCount = new HashMap<>();
         for (SyncOperation operation : diffOps) {
             for (SyncOperation.SyncItem item : operation.getSyncItems()) {
+                //exclude primary key
+                if (item.isIndex) {
+                    continue;
+                }
+
                 if (fieldCount.containsKey(item.fieldName)) {
                     fieldCount.put(item.fieldName, fieldCount.get(item.fieldName) + 1);
                 } else {
