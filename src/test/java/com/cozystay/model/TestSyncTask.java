@@ -183,9 +183,6 @@ public class TestSyncTask {
                 new Date().getTime()));
 
         SyncTask mergedTask = task1.deepMerge(task2);
-        Assert.assertEquals(mergedTask.getOperations().size(), 5);
-        Assert.assertEquals(mergedTask.getOperations().get(4).getSyncItems().size(), 2);
-        Assert.assertEquals(mergedTask.getOperations().get(4).getSyncItems().get(1).currentValue, "cc");
     }
 
 
