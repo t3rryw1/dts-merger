@@ -79,19 +79,6 @@ public class SyncOperationImpl implements SyncOperation {
         return syncItems;
     }
 
-    @Override
-    public SyncItem removeItemByFieldName(String fieldName) {
-        Iterator<SyncItem> items = syncItems.iterator();
-        while (items.hasNext()) {
-            SyncItem item = items.next();
-            if (item.fieldName.equals(fieldName)) {
-                items.remove();
-                return item;
-            }
-        }
-        return null;
-    }
-
     public String getSource() { return this.source; }
 
     @Override
@@ -245,19 +232,21 @@ public class SyncOperationImpl implements SyncOperation {
         List<SyncItem> items = getSyncItems();
         List<SyncItem> toMergeItems = toMergeOp.getSyncItems();
 
-        List<String> fieldsOfItems = items.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
-        List<String> fieldsOfToMergeItems = toMergeItems.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+        if (!getSource().equals(toMergeOp.getSource())) {
+            List<String> fieldsOfItems = items.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+            List<String> fieldsOfToMergeItems = toMergeItems.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
 
-        if (!fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
-            if (fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
-                //follow toMergeItem status settings
-                for (String sourceName : getSyncStatus().keySet()) {
-                    syncStatusMap.put(sourceName, toMergeOp.getSyncStatus().get(sourceName));
-                }
-            } else {
-                //set all source status to INIT
-                for (String sourceName : getSyncStatus().keySet()) {
-                    syncStatusMap.put(sourceName, SyncStatus.INIT);
+            if (!fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
+                if (fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
+                    //follow toMergeItem status settings
+                    for (String sourceName : getSyncStatus().keySet()) {
+                        syncStatusMap.put(sourceName, toMergeOp.getSyncStatus().get(sourceName));
+                    }
+                } else {
+                    //set all source status to INIT
+                    for (String sourceName : getSyncStatus().keySet()) {
+                        syncStatusMap.put(sourceName, SyncStatus.INIT);
+                    }
                 }
             }
         }
