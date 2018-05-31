@@ -1,11 +1,11 @@
 package com.cozystay.model;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SyncOperationImpl implements SyncOperation {
 
@@ -240,26 +240,43 @@ public class SyncOperationImpl implements SyncOperation {
 
     @Override
     public SyncOperation deepMerge(SyncOperation toMergeOp) {
-        Map<String, SyncItem> fields = new HashMap<>();
-        for (SyncItem toMergeItem : toMergeOp.getSyncItems()) {
-            fields.put(toMergeItem.fieldName, toMergeItem);
-        }
-        for (SyncItem selfItem : getSyncItems())
-            if (fields.containsKey(selfItem.fieldName)) {
-                SyncItem item = fields.get(selfItem.fieldName);
+        Map<String, SyncItem> fieldMap = new HashMap<>();
 
-                if (toMergeOp.getTime() > getTime()) {
-                    SyncItem mergedItem = selfItem.mergeItem(item);
-                    fields.put(selfItem.fieldName, mergedItem);
-                } else {
-                    SyncItem mergedItem = item.mergeItem(selfItem);
-                    fields.put(selfItem.fieldName, mergedItem);
+        List<SyncItem> items = getSyncItems();
+        List<SyncItem> toMergeItems = toMergeOp.getSyncItems();
+
+        List<String> fieldsOfItems = items.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+        List<String> fieldsOfToMergeItems = toMergeItems.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+
+        if (!fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
+            if (fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
+                //follow toMergeItem status settings
+                for (String sourceName : getSyncStatus().keySet()) {
+                    syncStatusMap.put(sourceName, toMergeOp.getSyncStatus().get(sourceName));
                 }
             } else {
-                fields.put(selfItem.fieldName, selfItem);
+                //set all source status to INIT
+                for (String sourceName : getSyncStatus().keySet()) {
+                    syncStatusMap.put(sourceName, SyncStatus.INIT);
+                }
             }
-        List<SyncItem> items = new ArrayList<>(fields.values());
-        updateItems(items);
+        }
+
+        for (SyncItem toMergeItem : toMergeItems) {
+            fieldMap.put(toMergeItem.fieldName, toMergeItem);
+        }
+
+        for (SyncItem selfItem : items) {
+            if (fieldMap.containsKey(selfItem.fieldName)) {
+                SyncItem item = fieldMap.get(selfItem.fieldName);
+                SyncItem mergedItem = toMergeOp.getTime() > getTime() ? selfItem.mergeItem(item) : item.mergeItem(selfItem);
+                fieldMap.put(selfItem.fieldName, mergedItem);
+            } else {
+                fieldMap.put(selfItem.fieldName, selfItem);
+            }
+        }
+
+        updateItems(new ArrayList<>(fieldMap.values()));
         reduceItems();
         return this;
     }
@@ -278,7 +295,6 @@ public class SyncOperationImpl implements SyncOperation {
     @Override
     public void setTask(SyncTask syncTask) {
         this.task = syncTask;
-
     }
 
     @Override
