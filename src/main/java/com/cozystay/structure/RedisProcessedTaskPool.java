@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.Set;
 
 public class RedisProcessedTaskPool implements ProcessedTaskPool {
+    public static final String DATA_NOTIFY_HASH_KEY = "cozy-notify-hash";
+    public static final String DATA_NOTIFY_SET_KEY = "cozy-notify-sort-set";
     public static final String DATA_PRIMARY_HASH_KEY = "cozy-data-hash";
     public static final String DATA_PRIMARY_SET_KEY = "cozy-data-sort-set";
     public static final String DATA_SECONDARY_HASH_KEY = "cozy-sec-data-hash";
