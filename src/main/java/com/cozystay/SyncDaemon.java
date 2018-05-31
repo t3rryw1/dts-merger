@@ -31,7 +31,7 @@ public class SyncDaemon implements Daemon {
     private static int MAX_DATABASE_SIZE = 10;
     private final static List<DataSource> dataSources = new ArrayList<>();
 
-    private static void onInit(DaemonContext daemonContext) throws Exception {
+    private static void onInitSync(DaemonContext daemonContext) throws Exception {
         logger.info("DB Sync primaryRunner launched");
         Properties prop = new Properties();
         prop.load(SyncDaemon.class.getResourceAsStream("/db-config.properties"));
@@ -64,7 +64,7 @@ public class SyncDaemon implements Daemon {
                 redisPort,
                 redisPassword,
                 RedisProcessedTaskPool.DATA_SECONDARY_HASH_KEY,
-                RedisProcessedTaskPool.DATA_PRIMARY_SET_KEY);
+                RedisProcessedTaskPool.DATA_SECONDARY_SET_KEY);
 
         primaryRunner = new SimpleTaskRunnerImpl(1, threadNumber) {
 
@@ -200,7 +200,7 @@ public class SyncDaemon implements Daemon {
 
     }
 
-    private static void onStart() {
+    private static void onStartSync() {
         System.out.println("start");
         primaryRunner.start();
         secondaryRunner.start();
@@ -210,21 +210,9 @@ public class SyncDaemon implements Daemon {
 
     }
 
-    private static void addTaskToSecondaryQueue(ProcessedTaskPool taskPool, SyncTask task){
-            if (!taskPool.hasTask(task)) {
-                taskPool.add(task);
 
-                return;
-            }
-            SyncTask currentTask = taskPool.get(task.getId());
-            currentTask = currentTask.deepMerge(task);
-            logger.info("add merged task to second pool: {}" + currentTask.toString());
-            taskPool.remove(currentTask);
-            taskPool.add(currentTask);
 
-    }
-
-    private static void onStop() {
+    private static void onStopSync() {
         System.out.println("stop");
         for (DataSource source : dataSources) {
             System.out.println("stop source " + source.getName());
@@ -244,20 +232,34 @@ public class SyncDaemon implements Daemon {
 
     }
 
+    private static void addTaskToSecondaryQueue(ProcessedTaskPool taskPool, SyncTask task){
+        if (!taskPool.hasTask(task)) {
+            taskPool.add(task);
+
+            return;
+        }
+        SyncTask currentTask = taskPool.get(task.getId());
+        currentTask = currentTask.deepMerge(task);
+        logger.info("add merged task to second pool: {}" + currentTask.toString());
+        taskPool.remove(currentTask);
+        taskPool.add(currentTask);
+
+    }
+
     @Override
     public void init(DaemonContext daemonContext) throws Exception {
-        onInit(daemonContext);
+        onInitSync(daemonContext);
     }
 
     @Override
     public void start() {
-        onStart();
+        onStartSync();
     }
 
 
     @Override
     public void stop() {
-        onStop();
+        onStopSync();
     }
 
     @Override
@@ -268,28 +270,28 @@ public class SyncDaemon implements Daemon {
 
     public static void main(String[] args) throws Exception {
 
-        onInit(null);
-        onStart();
+        onInitSync(null);
+        onStartSync();
 
 
         Signal.handle(new Signal("TERM"), new SignalHandler() {
             // Signal handler method for CTRL-C and simple kill command.
             public void handle(Signal signal) {
-                onStop();
+                onStopSync();
             }
         });
         Signal.handle(new Signal("INT"), new SignalHandler() {
             // Signal handler method for kill -INT command
 
             public void handle(Signal signal) {
-                onStop();
+                onStopSync();
             }
         });
 
         Signal.handle(new Signal("HUP"), new SignalHandler() {
             // Signal handler method for kill -HUP command
             public void handle(Signal signal) {
-                onStop();
+                onStopSync();
             }
         });
     }
