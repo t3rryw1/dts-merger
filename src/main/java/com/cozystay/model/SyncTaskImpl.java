@@ -123,18 +123,14 @@ public class SyncTaskImpl implements SyncTask {
             }
             addOperation(toMergeOp);
         }
-        Collections.sort(this.operations, new Comparator<SyncOperation>() {
-            @Override
-            public int compare(SyncOperation o1, SyncOperation o2) {
-                if (!o1.getOperationType().equals(o2.getOperationType())) {
-                    return o1.getOperationType().compareTo(o2.getOperationType());
-                    //
-                }
-                return o1.getTime() > (o2.getTime()) ? 1 : -1;
+        this.operations.sort((o1, o2) -> {
+            if (!o1.getOperationType().equals(o2.getOperationType())) {
+                return o1.getOperationType().compareTo(o2.getOperationType());
+                //
             }
+            return o1.getTime() > (o2.getTime()) ? 1 : -1;
         });
         return this;
-
     }
 
     public SyncTask mergeStatus(SyncTask task) {
@@ -225,7 +221,8 @@ public class SyncTaskImpl implements SyncTask {
                 Iterator<SyncOperation> iterativelyOps = diffOps.iterator();
                 while (iterativelyOps.hasNext()) {
                     SyncOperation operation = iterativelyOps.next();
-                    if (operation.getSyncItems().stream().anyMatch(syncItem -> syncItem.fieldName == field.getKey())) {
+
+                    if (operation.getSyncItems().stream().anyMatch(syncItem -> syncItem.fieldName.equals(field.getKey()))) {
                         //remove conflict operation
                         iterativelyOps.remove();
 
@@ -234,9 +231,8 @@ public class SyncTaskImpl implements SyncTask {
                     }
                 }
                 //merge this conflict operations and put it back
-                SyncOperation mergedOps = deepMergeOps(needMergeOps);
-                mergedOps.updateStatus(mergedOps.getSource(), SyncStatus.INIT);
-                diffOps.add(deepMergeOps(needMergeOps));
+                SyncOperation mergedOp = deepMergeOps(needMergeOps);
+                diffOps.add(mergedOp);
             }
         }
 
