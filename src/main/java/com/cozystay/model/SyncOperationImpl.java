@@ -232,25 +232,6 @@ public class SyncOperationImpl implements SyncOperation {
         List<SyncItem> items = getSyncItems();
         List<SyncItem> toMergeItems = toMergeOp.getSyncItems();
 
-        if (!getSource().equals(toMergeOp.getSource())) {
-            List<String> fieldsOfItems = items.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
-            List<String> fieldsOfToMergeItems = toMergeItems.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
-
-            if (!fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
-                if (fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
-                    //follow toMergeItem status settings
-                    for (String sourceName : getSyncStatus().keySet()) {
-                        syncStatusMap.put(sourceName, toMergeOp.getSyncStatus().get(sourceName));
-                    }
-                } else {
-                    //set all source status to INIT
-                    for (String sourceName : getSyncStatus().keySet()) {
-                        syncStatusMap.put(sourceName, SyncStatus.INIT);
-                    }
-                }
-            }
-        }
-
         for (SyncItem toMergeItem : toMergeItems) {
             fieldMap.put(toMergeItem.fieldName, toMergeItem);
         }
@@ -267,7 +248,48 @@ public class SyncOperationImpl implements SyncOperation {
 
         updateItems(new ArrayList<>(fieldMap.values()));
         reduceItems();
-        return this;
+
+        List<String> fieldsOfItems = items.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+        List<String> fieldsOfToMergeItems = toMergeItems.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+        //determine syncStatus & source
+        if (fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
+            //set syncStatus & source from this
+            return this;
+        } else if (fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
+            //set source from toMergeItems source
+            SyncOperation newOp = new SyncOperationImpl(
+                    task,
+                    operationType,
+                    getSyncItems(),
+                    toMergeOp.getSource(),
+                    new ArrayList<>(getSyncStatus().keySet()),
+                    new Date().getTime()
+            );
+
+            //follow toMergeItem status settings
+            for (String sourceName : getSyncStatus().keySet()) {
+                newOp.updateStatus(sourceName, toMergeOp.getSyncStatus().get(sourceName));
+            }
+
+            return newOp;
+        } else {
+            //TODO: determine how to fill the source (now its following this)
+            SyncOperation newOp = new SyncOperationImpl(
+                    task,
+                    operationType,
+                    getSyncItems(),
+                    getSource(),
+                    new ArrayList<>(getSyncStatus().keySet()),
+                    new Date().getTime()
+            );
+
+            //set all source status to INIT
+            for (String sourceName : getSyncStatus().keySet()) {
+                newOp.updateStatus(sourceName, SyncStatus.INIT);
+            }
+
+            return newOp;
+        }
     }
 
     @Override
