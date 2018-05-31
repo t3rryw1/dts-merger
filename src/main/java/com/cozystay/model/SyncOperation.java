@@ -29,8 +29,6 @@ public interface SyncOperation {
 
     void reduceItems();
 
-    SyncItem removeItemByFieldName(String fieldName);
-
     boolean shouldSendToSource(String name);
 
     void setSourceSend(String name);
