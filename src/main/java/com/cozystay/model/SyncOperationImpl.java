@@ -228,51 +228,40 @@ public class SyncOperationImpl implements SyncOperation {
     @Override
     public SyncOperation deepMerge(SyncOperation toMergeOp) {
         Map<String, SyncItem> fieldMap = new HashMap<>();
+        boolean laterThanToMergeOp = getTime() > toMergeOp.getTime();
+        boolean fromSameSource = getSource().equals(toMergeOp.getSource());
+        List<SyncItem> earlierItems = laterThanToMergeOp ? toMergeOp.getSyncItems() : getSyncItems();
+        List<SyncItem> laterItems = laterThanToMergeOp ? getSyncItems() : toMergeOp.getSyncItems();
+        List<String> fieldsOfItems = getSyncItems().stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+        List<String> fieldsOfToMergeItems = toMergeOp.getSyncItems().stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
 
-        List<SyncItem> items = getSyncItems();
-        List<SyncItem> toMergeItems = toMergeOp.getSyncItems();
-
-        for (SyncItem toMergeItem : toMergeItems) {
-            fieldMap.put(toMergeItem.fieldName, toMergeItem);
+        //if the later operations contain all the items of earlier one, return later one without merge
+        if (laterThanToMergeOp && fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
+            return this;
+        }
+        //the same case ↑
+        if (!laterThanToMergeOp && fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
+            return toMergeOp;
         }
 
-        for (SyncItem selfItem : items) {
-            if (fieldMap.containsKey(selfItem.fieldName)) {
-                SyncItem item = fieldMap.get(selfItem.fieldName);
-                SyncItem mergedItem = toMergeOp.getTime() > getTime() ? selfItem.mergeItem(item) : item.mergeItem(selfItem);
-                fieldMap.put(selfItem.fieldName, mergedItem);
+        //items merge logic
+        for (SyncItem earlierItem : earlierItems) {
+            fieldMap.put(earlierItem.fieldName, earlierItem);
+        }
+        for (SyncItem item : laterItems) {
+            if (fieldMap.containsKey(item.fieldName)) {
+                SyncItem earlierItem = fieldMap.get(item.fieldName);
+                SyncItem mergedItem = earlierItem.mergeItem(item);
+                fieldMap.put(item.fieldName, mergedItem);
             } else {
-                fieldMap.put(selfItem.fieldName, selfItem);
+                fieldMap.put(item.fieldName, item);
             }
         }
-
         updateItems(new ArrayList<>(fieldMap.values()));
         reduceItems();
 
-        List<String> fieldsOfItems = items.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
-        List<String> fieldsOfToMergeItems = toMergeItems.stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
-        //determine syncStatus & source
-        if (fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
-            //set syncStatus & source from this
-            return this;
-        } else if (fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
-            //set source from toMergeItems source
-            SyncOperation newOp = new SyncOperationImpl(
-                    task,
-                    operationType,
-                    getSyncItems(),
-                    toMergeOp.getSource(),
-                    new ArrayList<>(getSyncStatus().keySet()),
-                    new Date().getTime()
-            );
-
-            //follow toMergeItem status settings
-            for (String sourceName : getSyncStatus().keySet()) {
-                newOp.updateStatus(sourceName, toMergeOp.getSyncStatus().get(sourceName));
-            }
-
-            return newOp;
-        } else {
+        //if both operation comes from this same source, return this without status setting
+        if (!fromSameSource) {
             //TODO: determine how to fill the source (now its following this)
             SyncOperation newOp = new SyncOperationImpl(
                     task,
@@ -283,13 +272,12 @@ public class SyncOperationImpl implements SyncOperation {
                     new Date().getTime()
             );
 
-            //set all source status to INIT
             for (String sourceName : getSyncStatus().keySet()) {
                 newOp.updateStatus(sourceName, SyncStatus.INIT);
             }
-
             return newOp;
         }
+        return this;
     }
 
     @Override
