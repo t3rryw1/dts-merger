@@ -261,7 +261,9 @@ public class SyncOperationImpl implements SyncOperation {
         reduceItems();
 
         //if both operation comes from this same source, return this without status setting
-        if (!fromSameSource) {
+        if (fromSameSource) {
+            return this;
+        } else {
             //TODO: determine how to fill the source (now its following this)
             SyncOperation newOp = new SyncOperationImpl(
                     task,
@@ -277,7 +279,6 @@ public class SyncOperationImpl implements SyncOperation {
             }
             return newOp;
         }
-        return this;
     }
 
     @Override
