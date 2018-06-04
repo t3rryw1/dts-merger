@@ -24,7 +24,7 @@ public class DTSMessageParser {
                                  String source,
                                  SchemaRuleCollection rules)
             throws UnsupportedEncodingException {
-        SyncTaskBuilder builder = SyncTaskBuilder.getInstance();
+        SyncTaskBuilder builder = new SyncTaskBuilder();
         DataMessage.Record record = message.getRecord();
 
         builder.setOperationType(getType(message.getRecord().getOpt()));

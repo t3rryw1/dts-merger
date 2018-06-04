@@ -15,14 +15,22 @@ import java.util.Date;
 import java.util.Set;
 
 public class RedisProcessedTaskPool implements ProcessedTaskPool {
-    private final String DATA_HASH_KEY = "cozy-data-hash";
-    private final String DATA_SET_KEY = "cozy-data-sort-set";
+    public static final String DATA_NOTIFY_HASH_KEY = "cozy-notify-hash";
+    public static final String DATA_NOTIFY_SET_KEY = "cozy-notify-sort-set";
+    public static final String DATA_PRIMARY_HASH_KEY = "cozy-data-hash";
+    public static final String DATA_PRIMARY_SET_KEY = "cozy-data-sort-set";
+    public static final String DATA_SECONDARY_HASH_KEY = "cozy-sec-data-hash";
+    public static final String DATA_SECONDARY_SET_KEY = "cozy-sec-data-sort-set";
 
     private Jedis redisClient;
     private Kryo kryo;
 
 
-    public RedisProcessedTaskPool(String host, int port, String password) {
+    public RedisProcessedTaskPool(String host,
+                                  int port,
+                                  String password,
+                                  String hashKeyName,
+                                  String setKeyName) {
         JedisPool jedisPool = new JedisPool(host, port);
 
         redisClient = jedisPool.getResource();
@@ -39,8 +47,8 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     public void add(SyncTask task) {
         byte[] taskArray = encode(kryo, task);
         Transaction transaction = redisClient.multi();
-        transaction.hset(DATA_HASH_KEY.getBytes(), task.getId().getBytes(), taskArray);
-        transaction.zadd(DATA_SET_KEY,
+        transaction.hset(DATA_PRIMARY_HASH_KEY.getBytes(), task.getId().getBytes(), taskArray);
+        transaction.zadd(DATA_PRIMARY_SET_KEY,
                 new Date().getTime(),
                 task.getId());
         transaction.exec();
@@ -56,19 +64,19 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     @Override
     public void remove(String taskId) {
         Transaction transaction = redisClient.multi();
-        transaction.hdel(DATA_HASH_KEY.getBytes(), taskId.getBytes());
-        transaction.zrem(DATA_SET_KEY, taskId);
+        transaction.hdel(DATA_PRIMARY_HASH_KEY.getBytes(), taskId.getBytes());
+        transaction.zrem(DATA_PRIMARY_SET_KEY, taskId);
         transaction.exec();
     }
 
     @Override
     public boolean hasTask(SyncTask task) {
-        return redisClient.hexists(DATA_HASH_KEY, task.getId());
+        return redisClient.hexists(DATA_PRIMARY_HASH_KEY, task.getId());
     }
 
     @Override
     public synchronized SyncTask poll() {
-        Set<String> keySet = redisClient.zrange(DATA_SET_KEY, 0, 0);
+        Set<String> keySet = redisClient.zrange(DATA_PRIMARY_SET_KEY, 0, 0);
         if (keySet.isEmpty()) {
             return null;
         }
@@ -80,8 +88,18 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
+    public SyncTask peek() {
+        Set<String> keySet = redisClient.zrange(DATA_PRIMARY_SET_KEY, 0, 0);
+        if (keySet.isEmpty()) {
+            return null;
+        }
+        String key = (String) keySet.toArray()[0];
+        return get(key);
+    }
+
+    @Override
     public synchronized SyncTask get(String taskId) {
-        byte[] taskBytes = redisClient.hget(DATA_HASH_KEY.getBytes(), taskId.getBytes());
+        byte[] taskBytes = redisClient.hget(DATA_PRIMARY_HASH_KEY.getBytes(), taskId.getBytes());
         return decode(this.kryo, taskBytes);
     }
 

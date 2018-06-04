@@ -58,8 +58,8 @@ public class TestSyncTask {
 
     @Test
     public void testMergeStatus(){
-        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table");
+        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
+        SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
         SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
         task1.addOperation(new SyncOperationImpl(null,
                 SyncOperation.OperationType.CREATE,
@@ -81,74 +81,108 @@ public class TestSyncTask {
 
     @Test
     public void testDeepMerge() throws InterruptedException {
-        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table");
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR, true);
-        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem item3 = new SyncOperation.SyncItem<>("xxxx", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,false);
-        SyncOperation.SyncItem item4 = new SyncOperation.SyncItem<>("xxxx", "cc", "dd", SyncOperation.SyncItem.ColumnType.CHAR,false);
+        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
+        SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
+
+        //set items
+        SyncOperation.SyncItem editName1 = new SyncOperation.SyncItem<>(
+                "name",
+                "aa",
+                "bb",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true);
+
+        SyncOperation.SyncItem editName2 = new SyncOperation.SyncItem<>(
+                "name",
+                "aa",
+                "cc",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true);
+
+        SyncOperation.SyncItem editGender1 = new SyncOperation.SyncItem<>(
+                "gender",
+                "men",
+                "women",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true);
+
+        SyncOperation.SyncItem editGender2 = new SyncOperation.SyncItem<>(
+                "gender",
+                "men",
+                "other",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true);
+
+
+        SyncOperation.SyncItem editOtherField1 = new SyncOperation.SyncItem<>(
+                "other1",
+                "11",
+                "22",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true);
+
+        SyncOperation.SyncItem editOtherField2 = new SyncOperation.SyncItem<>(
+                "other2",
+                "22",
+                "ssd",
+                SyncOperation.SyncItem.ColumnType.CHAR,
+                true);
+
+
+        //add operation
         task1.addOperation(new SyncOperationImpl(null,
-                SyncOperation.OperationType.CREATE,
-                new ArrayList<>(Arrays.asList(item1, item3)),
+                SyncOperation.OperationType.UPDATE,
+                new ArrayList<>(Arrays.asList(editName1, editOtherField2)),
                 "source1",
-                new ArrayList<>(Arrays.asList("source1", "source2")),
+                new ArrayList<>(Arrays.asList("source1", "source2", "source3", "source4")),
+                new Date().getTime()));
+
+        Thread.sleep(50);
+
+        task1.addOperation(new SyncOperationImpl(null,
+                SyncOperation.OperationType.UPDATE,
+                new ArrayList<>(Arrays.asList(editName1)),
+                "source2",
+                new ArrayList<>(Arrays.asList("source1", "source2", "source3", "source4")),
+                new Date().getTime()));
+
+        Thread.sleep(50);
+
+        task1.addOperation(new SyncOperationImpl(null,
+                SyncOperation.OperationType.UPDATE,
+                new ArrayList<>(Arrays.asList(editGender1)),
+                "source3",
+                new ArrayList<>(Arrays.asList("source1", "source2", "source3", "source4")),
                 new Date().getTime()));
 
         Thread.sleep(50);
 
         task2.addOperation(new SyncOperationImpl(null,
-                SyncOperation.OperationType.CREATE,
-                new ArrayList<>(Arrays.asList(item2, item4)),
+                SyncOperation.OperationType.UPDATE,
+                new ArrayList<>(Arrays.asList(editName1)),
                 "source1",
-                new ArrayList<>(Arrays.asList("source1", "source2")),
+                new ArrayList<>(Arrays.asList("source1", "source2", "source3", "source4")),
                 new Date().getTime()));
 
-        task1.deepMerge(task2);
+        Thread.sleep(50);
 
-        List<SyncOperation.SyncItem> itemList = task1.getOperations().get(0).getSyncItems();
-
-        Assert.assertEquals(itemList.get(0).currentValue, "dd");
-        Assert.assertEquals(itemList.get(1).currentValue, "dd");
-    }
-
-    @Test
-    public void testMultipleTask(){
-        SyncTask task1 = new SyncTaskImpl(
-                "uuid",
-                "database",
-                "user_profile"
-        );
-        SyncOperation.SyncItem itemEditName1 = new SyncOperation.SyncItem<>(
-                "nick_name",
-                "artour",
-                "lanaya",
-                SyncOperation.SyncItem.ColumnType.CHAR,
-                true
-        );
-        SyncOperation.SyncItem itemEditFirstName1 = new SyncOperation.SyncItem<>(
-                "first_name",
-                "tang",
-                "mag",
-                SyncOperation.SyncItem.ColumnType.CHAR,
-                false
-        );
-        SyncOperation.SyncItem itemEditLastName1 = new SyncOperation.SyncItem<>(
-                "last_name",
-                "jing min",
-                "artour",
-                SyncOperation.SyncItem.ColumnType.CHAR,
-                false
-        );
-        task1.addOperation(new SyncOperationImpl(
-                null,
+        task2.addOperation(new SyncOperationImpl(null,
                 SyncOperation.OperationType.UPDATE,
-                new ArrayList<>(Arrays.asList(itemEditName1, itemEditFirstName1, itemEditLastName1)),
-                ".com",
-                new ArrayList<>(Arrays.asList(".com", ".cn")),
-                new Date().getTime()
-        ));
+                new ArrayList<>(Arrays.asList(editName2)),
+                "source2",
+                new ArrayList<>(Arrays.asList("source1", "source2", "source3", "source4")),
+                new Date().getTime()));
 
-        
+        Thread.sleep(50);
+
+        task2.addOperation(new SyncOperationImpl(null,
+                SyncOperation.OperationType.UPDATE,
+                new ArrayList<>(Arrays.asList(editGender2, editOtherField1)),
+                "source4",
+                new ArrayList<>(Arrays.asList("source1", "source2", "source3", "source4")),
+                new Date().getTime()));
+
+        SyncTask mergedTask = task1.deepMerge(task2);
     }
 
 

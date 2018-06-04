@@ -1,11 +1,11 @@
 package com.cozystay.model;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SyncOperationImpl implements SyncOperation {
 
@@ -195,7 +195,7 @@ public class SyncOperationImpl implements SyncOperation {
             if (!item.hasChange() && !item.isIndex) {
                 items.remove();
             }
-            if (fields.get(item.fieldName)) {
+            if (fields.containsKey(item.fieldName)) {
                 items.remove();
             } else {
                 fields.put(item.fieldName, true);
@@ -226,33 +226,59 @@ public class SyncOperationImpl implements SyncOperation {
     }
 
     @Override
-    public void deepMerge(SyncOperation toMergeOp) {
-        if (!toMergeOp.getSource().equals(getSource())) {
-            logger.error("can not merge operation from different source, operation: {}", toString());
-            return;
+    public SyncOperation deepMerge(SyncOperation toMergeOp) {
+        Map<String, SyncItem> fieldMap = new HashMap<>();
+        boolean laterThanToMergeOp = getTime() > toMergeOp.getTime();
+        boolean fromSameSource = getSource().equals(toMergeOp.getSource());
+        List<SyncItem> earlierItems = laterThanToMergeOp ? toMergeOp.getSyncItems() : getSyncItems();
+        List<SyncItem> laterItems = laterThanToMergeOp ? getSyncItems() : toMergeOp.getSyncItems();
+        List<String> fieldsOfItems = getSyncItems().stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+        List<String> fieldsOfToMergeItems = toMergeOp.getSyncItems().stream().map(e -> e.fieldName).distinct().collect(Collectors.toList());
+
+        //if the later operations contain all the items of earlier one, return later one without merge
+        if (laterThanToMergeOp && fieldsOfItems.containsAll(fieldsOfToMergeItems)) {
+            return this;
+        }
+        //the same case ↑
+        if (!laterThanToMergeOp && fieldsOfToMergeItems.containsAll(fieldsOfItems)) {
+            return toMergeOp;
         }
 
-        Map<String, SyncItem> fields = new HashMap<>();
-        for (SyncItem toMergeItem : toMergeOp.getSyncItems()) {
-            fields.put(toMergeItem.fieldName, toMergeItem);
+        //items merge logic
+        for (SyncItem earlierItem : earlierItems) {
+            fieldMap.put(earlierItem.fieldName, earlierItem);
         }
-        for (SyncItem selfItem : getSyncItems())
-            if (fields.containsKey(selfItem.fieldName)) {
-                SyncItem item = fields.get(selfItem.fieldName);
-
-                if (toMergeOp.getTime() > getTime()) {
-                    SyncItem mergedItem = selfItem.mergeItem(item);
-                    fields.put(selfItem.fieldName, mergedItem);
-                } else {
-                    SyncItem mergedItem = item.mergeItem(selfItem);
-                    fields.put(selfItem.fieldName, mergedItem);
-                }
+        for (SyncItem item : laterItems) {
+            if (fieldMap.containsKey(item.fieldName)) {
+                SyncItem earlierItem = fieldMap.get(item.fieldName);
+                SyncItem mergedItem = earlierItem.mergeItem(item);
+                fieldMap.put(item.fieldName, mergedItem);
             } else {
-                fields.put(selfItem.fieldName, selfItem);
+                fieldMap.put(item.fieldName, item);
             }
-        List<SyncItem> items = new ArrayList<>(fields.values());
-        updateItems(items);
+        }
+        updateItems(new ArrayList<>(fieldMap.values()));
         reduceItems();
+
+        //if both operation comes from this same source, return this without status setting
+        if (fromSameSource) {
+            return this;
+        } else {
+            //TODO: determine how to fill the source (now its following this)
+            SyncOperation newOp = new SyncOperationImpl(
+                    task,
+                    operationType,
+                    getSyncItems(),
+                    getSource(),
+                    new ArrayList<>(getSyncStatus().keySet()),
+                    new Date().getTime()
+            );
+
+            for (String sourceName : getSyncStatus().keySet()) {
+                newOp.updateStatus(sourceName, SyncStatus.INIT);
+            }
+            return newOp;
+        }
     }
 
     @Override
@@ -269,7 +295,6 @@ public class SyncOperationImpl implements SyncOperation {
     @Override
     public void setTask(SyncTask syncTask) {
         this.task = syncTask;
-
     }
 
     @Override

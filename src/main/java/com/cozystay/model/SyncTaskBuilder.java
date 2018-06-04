@@ -1,11 +1,11 @@
 package com.cozystay.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 public class SyncTaskBuilder {
-    private static SyncTaskBuilder builder;
     private static List<String> sourceList = new LinkedList<>();
     private String source;
     private Long operationTime;
@@ -46,10 +46,7 @@ public class SyncTaskBuilder {
     }
 
 
-    private SyncTaskBuilder() {
-    }
-
-    private void reset() {
+    public SyncTaskBuilder() {
         source = null;
         operationTime = null;
         items = new ArrayList<>();
@@ -59,13 +56,7 @@ public class SyncTaskBuilder {
         operationType = null;
     }
 
-    public static SyncTaskBuilder getInstance() {
-        if (builder == null) {
-            builder = new SyncTaskBuilder();
-        }
-        builder.reset();
-        return builder;
-    }
+
 
 
     public SyncTask build() {
@@ -94,11 +85,12 @@ public class SyncTaskBuilder {
                 this.database,
                 this.tableName,
                 this.operationType);
+        List<String> copiedList = new LinkedList<>(sourceList);
         SyncOperation operation = new SyncOperationImpl(task,
                 this.operationType,
                 this.items,
                 this.source,
-                sourceList,
+                copiedList,
                 this.operationTime);
         task.getOperations().add(operation);
         return task;
