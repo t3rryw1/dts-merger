@@ -14,6 +14,6 @@ public interface SyncNotifier {
 
     boolean matchTask(SyncTask task);
 
-    boolean notify(SyncTask task);
+    void notify(SyncTask task);
 
 }

@@ -36,8 +36,8 @@ public class HttpSyncNotifierImpl implements SyncNotifier {
                         fieldNames);
 
                 notifyRules.add(notifyRule);
-            } catch (Exception e) {
-
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
             }
         }
 
@@ -60,22 +60,24 @@ public class HttpSyncNotifierImpl implements SyncNotifier {
     }
 
     @Override
-    public boolean notify(SyncTask task) {
+    public void notify(SyncTask task) {
         SyncOperation operation = task.getOperations().get(0);
         List<NotifyRule.NotifyAction> actions = new ArrayList<>();
 
         for (NotifyRule rule : notifyRules) {
-            NotifyRule.NotifyAction action = rule.checkOperation(operation);
-            if (action != null) {
-                actions.add(action);
+            if (rule.operationMatchedRule(operation)) {
+                actions.add(rule.acceptOperation(operation));
             }
         }
 
         if (actions.size() > 0) {
-            //TODO: 排队运行action
-            return true;
-        } else {
-            return false;
+            for (NotifyRule.NotifyAction action : actions) {
+                try {
+                    action.sendRequest();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }

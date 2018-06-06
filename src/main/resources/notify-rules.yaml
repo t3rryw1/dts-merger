@@ -1,19 +1,11 @@
-- source: eadu
+- source: source2
+  database: eadu
   tableName: listing
   method: POST
-  path: /listing_update/${id}
+  path: https://staging.cozystay.com.cn/api/v2/admin/listings/${id}
   key: listing_id
   fieldNames:
   - title
   - lat
   - lng
-
-- source: eadu
-  tableName: listing
-  method: POST
-  path: /listing_update/${id}
-  key: listing_id
-  fieldNames:
-  - title
-  - lat
-  - lng
+  - description

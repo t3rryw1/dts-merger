@@ -24,7 +24,7 @@ public class TestNotifyRule {
     public void testLoadRules() throws FileNotFoundException {
         SyncNotifier notifier = new HttpSyncNotifierImpl();
         notifier.loadRules();
-        Assert.assertEquals(notifier.getNotifyRules().size(), 2);
+        Assert.assertEquals(notifier.getNotifyRules().size(), 1);
     }
 
     @Test
@@ -32,24 +32,55 @@ public class TestNotifyRule {
         SyncNotifier notifier = new HttpSyncNotifierImpl();
         notifier.loadRules();
 
-        SyncTask task = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.CREATE);
+        SyncTask task = new SyncTaskImpl("id-123-abc","test-db","listing", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("title", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         task.addOperation(
                 new SyncOperationImpl(null,
                         SyncOperation.OperationType.CREATE,
-                        new ArrayList<>(Arrays.asList(item)),
+                        new ArrayList<>(Arrays.asList(item, item1)),
                         "source1",
                         new ArrayList<>(Arrays.asList("source1", "source2")),
                         new Date().getTime())
         );
 
         Assert.assertTrue(notifier.matchTask(task));
+
+        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.CREATE);
+        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
+
+        task1.addOperation(
+                new SyncOperationImpl(null,
+                        SyncOperation.OperationType.CREATE,
+                        new ArrayList<>(Arrays.asList(item2)),
+                        "source1",
+                        new ArrayList<>(Arrays.asList("source1", "source2")),
+                        new Date().getTime())
+        );
+
+        Assert.assertFalse(notifier.matchTask(task1));
     }
 
     @Test
-    public void testNotifyAction() {
+    public void testNotifyAction() throws FileNotFoundException {
+        SyncNotifier notifier = new HttpSyncNotifierImpl();
+        notifier.loadRules();
 
+        SyncTask task = new SyncTaskImpl("id-123-abc","test-db","listing", SyncOperation.OperationType.CREATE);
+        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("description", "", "test case", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "b852ba30-62c7-11e8-9c79-1b71fef8d36a", SyncOperation.SyncItem.ColumnType.CHAR,true);
+
+        task.addOperation(
+                new SyncOperationImpl(null,
+                        SyncOperation.OperationType.CREATE,
+                        new ArrayList<>(Arrays.asList(item,item1)),
+                        "source1",
+                        new ArrayList<>(Arrays.asList("source1", "source2")),
+                        new Date().getTime())
+        );
+
+        notifier.notify(task);
     }
 
     @After

@@ -33,84 +33,75 @@ public class NotifyRuleImpl implements NotifyRule {
         this.fieldList = fieldList;
     }
 
-    public boolean operationMatchedRule(SyncOperation operation) {
+    private Boolean operationMatchedTable(SyncOperation operation) {
+        return operation.getTask().getTable().equals(tableName);
+    }
+
+    private Boolean operationMatchedKey(SyncOperation operation) {
         for (SyncOperation.SyncItem item : operation.getSyncItems()) {
-            if(itemMatchedRule(item)){
+            if(item.fieldName.equals(requestKey)){
                 return true;
             }
         }
         return false;
     }
 
-    private Boolean itemMatchedRule(SyncOperation.SyncItem item){
-        assert fieldList != null;
-        return fieldList.contains(item.fieldName);
+    private Boolean operationMatchedItem(SyncOperation operation) {
+        for (SyncOperation.SyncItem item : operation.getSyncItems()) {
+            if(fieldList.contains(item.fieldName)){
+                return true;
+            }
+        }
+        return false;
     }
 
-    private NotifyAction getAction(List<SyncOperation.SyncItem> items, SyncOperation.SyncItem KeyItem) {
-        String requestId = (String) KeyItem.currentValue;
-        assert requestPath != null;
-        assert requestId != null;
-        String fullUrl = requestPath.replace("${id}", requestId);
-        Map<String, String> params = new HashMap<>();
-        Map<String, String> body =  new HashMap<>();
-        assert requestMethod != null;
-        switch (requestMethod) {
-            case DELETE:
-                return new NotifyAction(fullUrl,
-                        requestMethod,
-                        params,
-                        body
-                );
+    public boolean operationMatchedRule(SyncOperation operation) {
+        return operationMatchedTable(operation) && operationMatchedKey(operation) && operationMatchedItem(operation);
+    }
 
-            case GET:
-                items.forEach(e -> {
-                    params.put(e.fieldName, (String) e.currentValue);
-                });
-                return new NotifyAction(fullUrl,
-                    requestMethod,
-                    params,
-                    body
-            );
-            case PUT:
-            case POST:
-                items.forEach(e -> {
-                    body.put(e.fieldName, (String) e.currentValue);
-                });
-                return new NotifyAction(fullUrl,
-                        requestMethod,
-                        params,
-                        body
-                );
+    private String operationGetKey(SyncOperation operation) {
+        if (!operationMatchedKey(operation)) {
+            return null;
         }
 
-        return null;
+        return (String) operation.getSyncItems()
+                .stream()
+                .filter(item -> {
+                    return item.fieldName.equals(requestKey);
+                })
+                .distinct()
+                .collect(Collectors.toList()).get(0).currentValue;
     }
 
-
-    public NotifyAction checkOperation(SyncOperation operation){
-        List<SyncOperation.SyncItem> matchedKeyItems = operation
+    private List<SyncOperation.SyncItem> operationGetItems(SyncOperation operation) {
+        return operation
                 .getSyncItems()
                 .stream()
-                .filter(e -> {
-                    assert e.fieldName != null;
-                    return e.fieldName.equals(requestKey);
+                .filter(item -> {
+                    return fieldList.contains(item.fieldName);
                 })
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private NotifyAction getAction(String requestId, List<SyncOperation.SyncItem> items) {
+        String fullUrl = requestPath.replace("${id}", requestId);
+        Map<String, String> params = new HashMap<>();
+        Map<String, String> body =  new HashMap<>();
+        items.forEach(e -> params.put(e.fieldName, (String) e.currentValue));
+        items.forEach(e -> body.put(e.fieldName, (String) e.currentValue));
+
+        return new NotifyAction(fullUrl,
+                requestMethod,
+                params,
+                body);
+    }
 
 
-        List<SyncOperation.SyncItem> matchedItems = operation
-                .getSyncItems()
-                .stream()
-                .filter(this::itemMatchedRule)
-                .distinct()
-                .collect(Collectors.toList());
-
-        if (matchedKeyItems.size() == 1 && matchedItems.size() > 0) {
-            return getAction(matchedItems, matchedKeyItems.get(0));
-        } else {
-            return null;
-        }
+    public NotifyAction acceptOperation(SyncOperation operation){
+        return getAction(operationGetKey(
+                operation),
+                operationGetItems(operation)
+        );
     }
 }
