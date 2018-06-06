@@ -80,7 +80,6 @@ public interface NotifyRule {
             HttpPost post = new HttpPost(url);
 
             post.setHeader("User-Agent", USER_AGENT);
-            post.setHeader("Authorization", "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc3RhZ2luZy5jb3p5c3RheS5jb20uY24vYXBpL3YyL2FkbWluL2F1dGgvbG9naW4vZW1haWwiLCJpYXQiOjE1MjgyNzY4MDMsImV4cCI6MTUyODI3ODAwMywibmJmIjoxNTI4Mjc2ODAzLCJqdGkiOiI3aUZUMVIybXRFWkNCTUlRIiwic3ViIjoiNDNiMDgwNDAtY2UyOS0xMWU3LTg4OGItOGZkMmY0NGU0ZjBiIiwicHJ2IjoiM2QzYTY4Nzk2MjEzM2MwOWI1ZWE5MDUzNWUwYjMxYmJjODliMjAyMCJ9.YJB5D6JXDhzYi8AH2yQZpxX4dMPBUN2vY1_z6e8_UDc");
 
             List<NameValuePair> urlParameters = new ArrayList<>();
 
@@ -142,8 +141,6 @@ public interface NotifyRule {
                     }
                     break;
                 case POST:
-                    sendPost(requestUrl, requestBody);
-                    break;
                 case PUT:
                     sendPost(requestUrl, requestBody);
                     break;
