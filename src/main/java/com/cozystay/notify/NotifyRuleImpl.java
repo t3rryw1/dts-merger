@@ -99,8 +99,7 @@ public class NotifyRuleImpl implements NotifyRule {
 
 
     public NotifyAction acceptOperation(SyncOperation operation){
-        return getAction(operationGetKey(
-                operation),
+        return getAction(operationGetKey(operation),
                 operationGetItems(operation)
         );
     }
