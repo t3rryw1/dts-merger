@@ -6,9 +6,15 @@ import com.cozystay.model.SyncTask;
 import java.io.*;
 import java.util.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
+import net.sf.json.JSONObject;
 
 public class HttpSyncNotifierImpl implements SyncNotifier {
+    private static Logger logger = LoggerFactory.getLogger(SyncNotifier.class);
+
+
     private List<NotifyRule> notifyRules;
 
     @Override
@@ -73,7 +79,10 @@ public class HttpSyncNotifierImpl implements SyncNotifier {
         if (actions.size() > 0) {
             for (NotifyRule.NotifyAction action : actions) {
                 try {
-                    action.sendRequest();
+                    JSONObject resJson = action.sendRequest();
+                    if (!resJson.get("code").equals(0)) {
+                        logger.error("notify action failed: {}", resJson.toString());
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

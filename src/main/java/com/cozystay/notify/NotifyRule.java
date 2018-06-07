@@ -13,6 +13,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import net.sf.json.JSONObject;
 
 public interface NotifyRule {
 
@@ -53,17 +54,11 @@ public interface NotifyRule {
             this.requestBody = body;
         }
 
-        private void sendGet(String url) throws IOException {
+        private JSONObject sendGet(String url) throws IOException {
             HttpClient client = new DefaultHttpClient();
             HttpGet request = new HttpGet(url);
-
             request.addHeader("User-Agent", USER_AGENT);
-
             HttpResponse response = client.execute(request);
-
-            System.out.println("\nSending 'GET' request to URL : " + url);
-            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
-
             BufferedReader rd = new BufferedReader( new InputStreamReader(response.getEntity().getContent()) );
 
             StringBuilder result = new StringBuilder();
@@ -72,28 +67,22 @@ public interface NotifyRule {
                 result.append(line);
             }
 
-            System.out.println(result.toString());
+            JSONObject resJson = JSONObject.fromObject(result.toString());
+            return resJson;
         }
 
-        private void sendPost(String url, Map<String, String> body) throws IOException {
+        private JSONObject sendPost(String url, Map<String, String> body) throws IOException {
             HttpClient client = new DefaultHttpClient();
             HttpPost post = new HttpPost(url);
-
             post.setHeader("User-Agent", USER_AGENT);
 
             List<NameValuePair> urlParameters = new ArrayList<>();
-
             for (Map.Entry<String, String> item : body.entrySet()) {
                 urlParameters.add(new BasicNameValuePair(item.getKey(), item.getValue()));
             }
 
             post.setEntity(new UrlEncodedFormEntity(urlParameters));
             HttpResponse response = client.execute(post);
-
-            System.out.println("\nSending 'POST' request to URL : " + url);
-            System.out.println("Post parameters : " + post.getEntity().getContent());
-            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
-
             BufferedReader rd = new BufferedReader( new InputStreamReader(response.getEntity().getContent()) );
 
             StringBuilder result = new StringBuilder();
@@ -102,20 +91,15 @@ public interface NotifyRule {
                 result.append(line);
             }
 
-            System.out.println(result.toString());
+            JSONObject resJson = JSONObject.fromObject(result.toString());
+            return resJson;
         }
 
-        private void sendDelete(String url) throws IOException  {
+        private JSONObject sendDelete(String url) throws IOException  {
             HttpClient client = new DefaultHttpClient();
             HttpDelete request = new HttpDelete(url);
-
             request.addHeader("User-Agent", USER_AGENT);
-
             HttpResponse response = client.execute(request);
-
-            System.out.println("\nSending 'DELETE' request to URL : " + url);
-            System.out.println("Response Code : " + response.getStatusLine().getStatusCode());
-
             BufferedReader rd = new BufferedReader( new InputStreamReader(response.getEntity().getContent()) );
 
             StringBuilder result = new StringBuilder();
@@ -124,10 +108,11 @@ public interface NotifyRule {
                 result.append(line);
             }
 
-            System.out.println(result.toString());
+            JSONObject resJson = JSONObject.fromObject(result.toString());
+            return resJson;
         }
 
-        public void sendRequest() throws IOException {
+        public JSONObject sendRequest() throws IOException {
             switch (requestMethod) {
                 case GET:
                     List<String> params = new ArrayList<>();
@@ -135,19 +120,18 @@ public interface NotifyRule {
                         params.add(param.getKey() + "=" + param.getValue());
                     }
                     if (params.size() > 0) {
-                        sendGet(requestUrl + "?" + params.stream().reduce((o1, o2) -> o1+"&"+o2).get());
+                        return sendGet(requestUrl + "?" + params.stream().reduce((o1, o2) -> o1+"&"+o2).get());
                     } else {
-                        sendGet(requestUrl);
+                        return sendGet(requestUrl);
                     }
-                    break;
                 case POST:
                 case PUT:
-                    sendPost(requestUrl, requestBody);
-                    break;
+                    return sendPost(requestUrl, requestBody);
                 case DELETE:
-                    sendDelete(requestUrl);
-                    break;
+                    return sendDelete(requestUrl);
             }
+
+            return null;
         }
     }
 }

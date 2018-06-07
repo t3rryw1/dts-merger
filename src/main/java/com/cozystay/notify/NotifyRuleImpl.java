@@ -66,9 +66,7 @@ public class NotifyRuleImpl implements NotifyRule {
 
         return (String) operation.getSyncItems()
                 .stream()
-                .filter(item -> {
-                    return item.fieldName.equals(requestKey);
-                })
+                .filter(item -> item.fieldName.equals(requestKey))
                 .distinct()
                 .collect(Collectors.toList()).get(0).currentValue;
     }
@@ -77,9 +75,7 @@ public class NotifyRuleImpl implements NotifyRule {
         return operation
                 .getSyncItems()
                 .stream()
-                .filter(item -> {
-                    return fieldList.contains(item.fieldName);
-                })
+                .filter(item -> fieldList.contains(item.fieldName))
                 .distinct()
                 .collect(Collectors.toList());
     }
