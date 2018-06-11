@@ -381,11 +381,11 @@ class BinLogEventParser {
                         checkTypes(newValue, BinLogEventParser.AllowType.UtilDate)) {
                     Timestamp oldDate = null;
                     if (oldValue != null) {
-                        oldDate = new Timestamp(((java.sql.Date) oldValue).getTime());
+                        oldDate = new Timestamp(((java.util.Date) oldValue).getTime());
                     }
                     Timestamp newDate = null;
                     if (newValue != null) {
-                        newDate = new Timestamp(((java.sql.Date) newValue).getTime());
+                        newDate = new Timestamp(((java.util.Date) newValue).getTime());
                     }
 
                     return new SyncOperation.SyncItem<>(field.columnName,
