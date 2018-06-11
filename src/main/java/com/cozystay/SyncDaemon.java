@@ -121,21 +121,19 @@ public class SyncDaemon implements Daemon {
             public void workOn() {
                 SyncTask task;
                 synchronized (secondaryPool) {
-                    task = secondaryPool.poll();
+                    task = secondaryPool.peek();
                     if (task == null) {
                         return;
                     }
-                }
-                synchronized (primaryPool) {
-                    if (!primaryPool.hasTask(task)) {
-                        logger.info("add task  to primary pool: {}" + task.toString());
+                    synchronized (primaryPool) {
+                        if (primaryPool.hasTask(task)) {
+                            return;
+                        }
+                        logger.info("add task to primary pool: {}" + task.toString());
                         primaryPool.add(task);
-                        return;
                     }
-                }
-                synchronized (secondaryPool){
-                    logger.info("add task back to second pool: {}" + task.toString());
-                    addTaskToSecondaryQueue(secondaryPool,task);
+                    logger.info("remove task from secondary pool: {}" + task.toString());
+                    secondaryPool.remove(task);
                 }
             }
         };
@@ -211,7 +209,6 @@ public class SyncDaemon implements Daemon {
     }
 
 
-
     private static void onStopSync() {
         System.out.println("stop");
         for (DataSource source : dataSources) {
@@ -232,7 +229,7 @@ public class SyncDaemon implements Daemon {
 
     }
 
-    private static void addTaskToSecondaryQueue(ProcessedTaskPool taskPool, SyncTask task){
+    private static void addTaskToSecondaryQueue(ProcessedTaskPool taskPool, SyncTask task) {
         if (!taskPool.hasTask(task)) {
             taskPool.add(task);
 
