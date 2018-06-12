@@ -33,8 +33,8 @@ public class TestNotifyRule {
         notifier.loadRules();
 
         SyncTask task = new SyncTaskImpl("id-123-abc","test-db","listing", SyncOperation.OperationType.CREATE);
-        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("title", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("title", "aa", "121212", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "sdahsdj", SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         task.addOperation(
                 new SyncOperationImpl(null,
@@ -67,9 +67,9 @@ public class TestNotifyRule {
         SyncNotifier notifier = new HttpSyncNotifierImpl();
         notifier.loadRules();
 
-        SyncTask task = new SyncTaskImpl("id-123-abc","test-db","listing", SyncOperation.OperationType.CREATE);
-        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("description", "", "test case", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "b852ba30-62c7-11e8-9c79-1b71fef8d36a", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncTask task = new SyncTaskImpl("id-123-abc","eadu","listing", SyncOperation.OperationType.CREATE);
+        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("title", "aa", "121212", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "sdahsdj", SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         task.addOperation(
                 new SyncOperationImpl(null,

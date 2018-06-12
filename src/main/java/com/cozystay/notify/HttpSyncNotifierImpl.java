@@ -5,6 +5,8 @@ import com.cozystay.model.SyncTask;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,39 +15,51 @@ import net.sf.json.JSONObject;
 
 public class HttpSyncNotifierImpl implements SyncNotifier {
     private static Logger logger = LoggerFactory.getLogger(SyncNotifier.class);
-
-
     private List<NotifyRule> notifyRules;
 
     @Override
-    public void loadRules() throws FileNotFoundException {
+    public void loadRules() {
         Yaml yaml = new Yaml();
-        File file = new File("src/main/resources/notify-rules.yaml");
-        FileInputStream stream = new FileInputStream(file);
+        InputStream stream = HttpSyncNotifierImpl.class.getResourceAsStream("/notify-rules.yaml");
 
         List<NotifyRule> notifyRules = new ArrayList<>();
         List rules = yaml.loadAs(stream, List.class);
 
-        for (Object rule : rules) {
+        for (Object rule : rules)
             try {
                 HashMap map = (HashMap) rule;
-                String key = (String) map.get("key");
-                String path = (String) map.get("path");
-                String tableName = (String) map.get("tableName");
+                Boolean matchAllDatabase = (Boolean) map.get("matchAllDatabase");
+                Boolean matchAllTable = (Boolean) map.get("matchAllTable");
+                Boolean matchAllField = (Boolean) map.get("matchAllField");
+                String database = matchAllDatabase ? null : (String) map.get("database");
+                String tableName = matchAllTable ? null : (String) map.get("tableName");
+                List<String> fieldNames = matchAllField ? null : (List<String>) map.get("fieldNames");
                 NotifyRule.requestMethod method = NotifyRule.requestMethod.valueOf((String) map.get("method"));
-                List<String> fieldNames = (List<String>) map.get("fieldNames");
+                String path = (String) map.get("path");
 
-                NotifyRule notifyRule = new NotifyRuleImpl(key,
-                        path,
+                List<String> keyFieldNames = new ArrayList<>();
+                Pattern pattern = Pattern.compile("\\$\\{(.*?)}");
+                Matcher matcher = pattern.matcher(path);
+                while (matcher.find()) {
+                    keyFieldNames.add(matcher.group(1));
+                }
+
+                NotifyRule notifyRule = new NotifyRuleImpl(
+                        matchAllDatabase,
+                        matchAllTable,
+                        matchAllField,
+                        database,
                         tableName,
+                        fieldNames,
+                        keyFieldNames,
                         method,
-                        fieldNames);
+                        path
+                );
 
                 notifyRules.add(notifyRule);
             } catch (IllegalArgumentException e) {
                 e.printStackTrace();
             }
-        }
 
         this.notifyRules = notifyRules;
     }
@@ -68,7 +82,7 @@ public class HttpSyncNotifierImpl implements SyncNotifier {
     @Override
     public void notify(SyncTask task) {
         SyncOperation operation = task.getOperations().get(0);
-        List<NotifyRule.NotifyAction> actions = new ArrayList<>();
+        List<NotifyAction> actions = new ArrayList<>();
 
         for (NotifyRule rule : notifyRules) {
             if (rule.operationMatchedRule(operation)) {
@@ -77,7 +91,7 @@ public class HttpSyncNotifierImpl implements SyncNotifier {
         }
 
         if (actions.size() > 0) {
-            for (NotifyRule.NotifyAction action : actions) {
+            for (NotifyAction action : actions) {
                 try {
                     JSONObject resJson = action.sendRequest();
                     if (!resJson.get("code").equals(0)) {

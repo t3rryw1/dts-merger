@@ -9,11 +9,9 @@ public interface SyncNotifier {
 
     void loadRules() throws FileNotFoundException;
 
-    public List<NotifyRule> getNotifyRules();
-
+    List<NotifyRule> getNotifyRules();
 
     boolean matchTask(SyncTask task);
 
     void notify(SyncTask task);
-
 }

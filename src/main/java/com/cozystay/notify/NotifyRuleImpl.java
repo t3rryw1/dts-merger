@@ -1,54 +1,87 @@
 package com.cozystay.notify;
-import com.cozystay.model.SyncOperation;
 
+import com.cozystay.model.SyncOperation;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-
 public class NotifyRuleImpl implements NotifyRule {
-    private final String requestKey;
-    private final String requestPath;
+    private final Boolean matchAllDatabase;
+    private final Boolean matchAllTable;
+    private final Boolean matchAllField;
+    private final String database;
     private final String tableName;
-    private final requestMethod requestMethod;
-    private final List<String> fieldList;
+    private final List<String> fieldNames;
+    private final List<String> keyFieldNames;
+    private final requestMethod method;
+    private final String path;
 
     NotifyRuleImpl() {
-        requestKey = null;
-        requestPath = null;
+        matchAllDatabase = false;
+        matchAllTable = false;
+        matchAllField = false;
+        database = null;
         tableName = null;
-        requestMethod = null;
-        fieldList = null;
+        fieldNames = null;
+        keyFieldNames = null;
+        method = null;
+        path = null;
     }
 
-    public NotifyRuleImpl(String key,
-                          String path,
-                          String tableName,
-                          requestMethod method,
-                          List<String> fieldList
+    public NotifyRuleImpl(
+            Boolean matchAllDatabase,
+            Boolean matchAllTable,
+            Boolean matchAllField,
+            String database,
+            String tableName,
+            List<String> fieldNames,
+            List<String> keyFieldNames,
+            requestMethod method,
+            String path
     ) {
-        this.requestKey = key;
-        this.requestPath = path;
+        this.matchAllDatabase = matchAllDatabase;
+        this.matchAllTable = matchAllTable;
+        this.matchAllField = matchAllField;
+        this.database = database;
         this.tableName = tableName;
-        this.requestMethod = method;
-        this.fieldList = fieldList;
+        this.fieldNames = fieldNames;
+        this.keyFieldNames = keyFieldNames;
+        this.method = method;
+        this.path = path;
+    }
+
+    private Boolean operationMatchedDatabase(SyncOperation operation) {
+        if (matchAllDatabase) {
+            return true;
+        }
+        return operation.getTask().getDatabase().equals(database);
     }
 
     private Boolean operationMatchedTable(SyncOperation operation) {
+        if (matchAllTable) {
+            return true;
+        }
         return operation.getTask().getTable().equals(tableName);
     }
 
     private Boolean operationMatchedKey(SyncOperation operation) {
-        for (SyncOperation.SyncItem item : operation.getSyncItems()) {
-            if(item.fieldName.equals(requestKey)){
-                return true;
-            }
+        if (matchAllField) {
+            return true;
         }
-        return false;
+
+        return operation
+                .getSyncItems()
+                .stream()
+                .map(item -> item.fieldName)
+                .distinct()
+                .collect(Collectors.toList())
+                .containsAll(keyFieldNames);
     }
 
     private Boolean operationMatchedItem(SyncOperation operation) {
         for (SyncOperation.SyncItem item : operation.getSyncItems()) {
-            if(fieldList.contains(item.fieldName)){
+            if(fieldNames.contains(item.fieldName)){
                 return true;
             }
         }
@@ -56,46 +89,57 @@ public class NotifyRuleImpl implements NotifyRule {
     }
 
     public boolean operationMatchedRule(SyncOperation operation) {
-        return operationMatchedTable(operation) && operationMatchedKey(operation) && operationMatchedItem(operation);
+        return operationMatchedDatabase(operation)
+                &&
+                operationMatchedTable(operation)
+                &&
+                operationMatchedKey(operation)
+                &&
+                operationMatchedItem(operation);
     }
 
-    private String operationGetKey(SyncOperation operation) {
-        if (!operationMatchedKey(operation)) {
-            return null;
-        }
-
-        return (String) operation.getSyncItems()
+    private List<SyncOperation.SyncItem> operationGetKeyItems(SyncOperation operation) {
+        return operation
+                .getSyncItems()
                 .stream()
-                .filter(item -> item.fieldName.equals(requestKey))
+                .filter(item -> keyFieldNames.contains(item.fieldName))
                 .distinct()
-                .collect(Collectors.toList()).get(0).currentValue;
+                .collect(Collectors.toList());
     }
 
     private List<SyncOperation.SyncItem> operationGetItems(SyncOperation operation) {
         return operation
                 .getSyncItems()
                 .stream()
-                .filter(item -> fieldList.contains(item.fieldName))
+                .filter(item -> fieldNames.contains(item.fieldName))
                 .distinct()
                 .collect(Collectors.toList());
     }
 
-    private NotifyAction getAction(String requestId, List<SyncOperation.SyncItem> items) {
-        String fullUrl = requestPath.replace("${id}", requestId);
+    private NotifyAction getAction(List<SyncOperation.SyncItem> keyItems, List<SyncOperation.SyncItem> items) {
+        String fullUrl = path;
+        for (SyncOperation.SyncItem keyItem : keyItems) {
+            String regex = "\\$\\{" + keyItem.fieldName + "}";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(fullUrl);
+            fullUrl = matcher.replaceAll((String) keyItem.currentValue);
+        }
+
         Map<String, String> params = new HashMap<>();
         Map<String, String> body =  new HashMap<>();
         items.forEach(e -> params.put(e.fieldName, (String) e.currentValue));
         items.forEach(e -> body.put(e.fieldName, (String) e.currentValue));
 
-        return new NotifyAction(fullUrl,
-                requestMethod,
+        return new NotifyActionImpl(fullUrl,
+                method,
                 params,
                 body);
     }
 
 
-    public NotifyAction acceptOperation(SyncOperation operation){
-        return getAction(operationGetKey(operation),
+    public NotifyAction acceptOperation(SyncOperation operation) {
+        return getAction(
+                operationGetKeyItems(operation),
                 operationGetItems(operation)
         );
     }
