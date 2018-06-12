@@ -24,7 +24,8 @@ public class TestNotifyRule {
     public void testLoadRules() throws FileNotFoundException {
         SyncNotifier notifier = new HttpSyncNotifierImpl();
         notifier.loadRules();
-        Assert.assertEquals(notifier.getNotifyRules().size(), 1);
+
+        Assert.assertEquals(notifier.getNotifyRules().size(), 2);
     }
 
     @Test
@@ -32,7 +33,7 @@ public class TestNotifyRule {
         SyncNotifier notifier = new HttpSyncNotifierImpl();
         notifier.loadRules();
 
-        SyncTask task = new SyncTaskImpl("id-123-abc","test-db","listing", SyncOperation.OperationType.CREATE);
+        SyncTask task = new SyncTaskImpl("id-123-abc","eadu","listing", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("title", "aa", "121212", SyncOperation.SyncItem.ColumnType.CHAR,true);
         SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>("listing_id", "aa", "sdahsdj", SyncOperation.SyncItem.ColumnType.CHAR,true);
 
@@ -47,7 +48,7 @@ public class TestNotifyRule {
 
         Assert.assertTrue(notifier.matchTask(task));
 
-        SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.CREATE);
+        SyncTask task1 = new SyncTaskImpl("id-123-abc","eadu","listing", SyncOperation.OperationType.CREATE);
         SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
 
         task1.addOperation(
@@ -60,6 +61,19 @@ public class TestNotifyRule {
         );
 
         Assert.assertFalse(notifier.matchTask(task1));
+
+        SyncTask task2 = new SyncTaskImpl("id-123-abc","test1","listing", SyncOperation.OperationType.CREATE);
+
+        task1.addOperation(
+                new SyncOperationImpl(null,
+                        SyncOperation.OperationType.CREATE,
+                        new ArrayList<>(Arrays.asList(item, item1)),
+                        "source1",
+                        new ArrayList<>(Arrays.asList("source1", "source2")),
+                        new Date().getTime())
+        );
+
+        Assert.assertFalse(notifier.matchTask(task2));
     }
 
     @Test

@@ -70,6 +70,9 @@ public class HttpSyncNotifierImpl implements SyncNotifier {
 
     @Override
     public boolean matchTask(SyncTask task) {
+        if (task.getOperations().size() < 1){
+            return false;
+        }
         SyncOperation operation = task.getOperations().get(0);
         for (NotifyRule rule : notifyRules) {
             if (rule.operationMatchedRule(operation)) {
