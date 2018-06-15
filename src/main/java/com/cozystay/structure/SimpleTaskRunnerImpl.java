@@ -19,9 +19,9 @@ public abstract class SimpleTaskRunnerImpl implements TaskRunner {
         this.threadNumber = threadNumber;
         BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
         executor = new ThreadPoolExecutor(threadNumber,
-                100,
+                50,
                 10000,
-                TimeUnit.DAYS,
+                TimeUnit.SECONDS,
                 queue);
     }
 
@@ -31,12 +31,7 @@ public abstract class SimpleTaskRunnerImpl implements TaskRunner {
             TimerTask task = new TimerTask() {
                 @Override
                 public void run() {
-                    executor.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            workOn();
-                        }
-                    });
+                    executor.execute(() -> workOn());
 
                 }
             };
