@@ -115,7 +115,7 @@ public class SyncDaemon implements Daemon {
             }
         };
 
-        secondaryRunner = new SimpleTaskRunnerImpl(1, 2) {
+        secondaryRunner = new SimpleTaskRunnerImpl(1, 5) {
 
             @Override
             public void workOn() {
@@ -125,6 +125,8 @@ public class SyncDaemon implements Daemon {
                     if (task == null) {
                         return;
                     }
+                    logger.info("found task in secondary pool: {}" + task.toString());
+
                     synchronized (primaryPool) {
                         if (primaryPool.hasTask(task)) {
                             return;
@@ -148,30 +150,33 @@ public class SyncDaemon implements Daemon {
                             logger.error("new task should not have multiple operations: {}" + newTask.toString());
                             return;
                         }
-                        synchronized (primaryPool) {
-
-                            if (!primaryPool.hasTask(newTask)) {
-                                primaryPool.add(newTask);
-                                logger.info("add new task: {}" + newTask.toString());
-                                return;
-                            }
-
-                            SyncTask currentTask = primaryPool.get(newTask.getId());
-                            if (currentTask.canMergeStatus(newTask.firstOperation())) {
-                                SyncTask mergedTask = currentTask.mergeStatus(newTask);
-                                primaryPool.remove(currentTask);
-                                if (!mergedTask.allOperationsCompleted()) {
-                                    primaryPool.add(mergedTask);
-                                    logger.info("add merged task: {}" + mergedTask.toString());
-                                } else {
-                                    logger.info("removed task: {}" + mergedTask.toString());
-
-                                }
-                                return;
-                            }
-                        }
+                        logger.info("begin to work on new task: {}" + newTask.toString());
 
                         synchronized (secondaryPool) {
+
+                            synchronized (primaryPool) {
+
+                                if (!primaryPool.hasTask(newTask)) {
+                                    primaryPool.add(newTask);
+                                    logger.info("add new task to primary queue: {}" + newTask.toString());
+                                    return;
+                                }
+
+                                SyncTask currentTask = primaryPool.get(newTask.getId());
+                                if (currentTask.canMergeStatus(newTask.firstOperation())) {
+                                    SyncTask mergedTask = currentTask.mergeStatus(newTask);
+                                    primaryPool.remove(currentTask);
+                                    if (!mergedTask.allOperationsCompleted()) {
+                                        primaryPool.add(mergedTask);
+                                        logger.info("add merged task : {}" + mergedTask.toString());
+                                    } else {
+                                        logger.info("removed task: {}" + mergedTask.toString());
+
+                                    }
+                                    return;
+                                }
+                            }
+
                             logger.info("add new task to second pool: {}" + newTask.toString());
                             addTaskToSecondaryQueue(secondaryPool, newTask);
                         }
