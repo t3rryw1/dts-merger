@@ -121,21 +121,22 @@ public class SyncDaemon implements Daemon {
             public void workOn() {
                 SyncTask task;
                 synchronized (secondaryPool) {
-                    task = secondaryPool.peek();
+                    task = secondaryPool.poll();
                     if (task == null) {
                         return;
                     }
-                    logger.info("found task in secondary pool: {}" + task.toString());
-
                     synchronized (primaryPool) {
                         if (primaryPool.hasTask(task)) {
+                            secondaryPool.add(task);
                             return;
+                        }else{
+                            primaryPool.add(task);
+                            secondaryPool.remove(task);
+                            logger.info("add task to primary pool: {}" + task.toString());
+                            logger.info("remove task from secondary pool: {}" + task.toString());
+
                         }
-                        logger.info("add task to primary pool: {}" + task.toString());
-                        primaryPool.add(task);
                     }
-                    logger.info("remove task from secondary pool: {}" + task.toString());
-                    secondaryPool.remove(task);
                 }
             }
         };
