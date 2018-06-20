@@ -69,7 +69,6 @@ public class NotifyRuleImpl implements NotifyRule {
         if (matchAllField) {
             return true;
         }
-
         return operation
                 .getSyncItems()
                 .stream()
@@ -111,7 +110,10 @@ public class NotifyRuleImpl implements NotifyRule {
         return operation
                 .getSyncItems()
                 .stream()
-                .filter(item -> fieldNames.contains(item.fieldName))
+                .filter(item -> {
+                    if (matchAllField) return true;
+                    return fieldNames.contains(item.fieldName);
+                })
                 .distinct()
                 .collect(Collectors.toList());
     }
