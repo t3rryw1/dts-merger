@@ -32,7 +32,6 @@ public class NotifyDaemon implements Daemon {
     private static void onInitNotify(DaemonContext daemonContext) throws IOException, ParseException {
         logger.info("DB Sync primaryRunner launched");
         Properties prop = new Properties();
-        prop.load(NotifyDaemon.class.getResourceAsStream("/notify-config.properties"));
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
         logger.info("Running with {} threads", threadNumber);
 
@@ -52,7 +51,7 @@ public class NotifyDaemon implements Daemon {
         }
 
         notifier = new HttpSyncNotifierImpl();
-        notifier.loadRules(prop);
+        notifier.loadRules();
 
         final ProcessedTaskPool primaryPool = new RedisProcessedTaskPool(redisHost,
                 redisPort,

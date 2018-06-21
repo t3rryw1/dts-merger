@@ -2,14 +2,16 @@ package com.cozystay.notify;
 
 import com.cozystay.model.SyncTask;
 
-import java.util.Properties;
+import java.io.FileNotFoundException;
+import java.util.List;
 
 public interface SyncNotifier {
 
-    void loadRules(Properties properties);
+    void loadRules() throws FileNotFoundException;
+
+    List<NotifyRule> getNotifyRules();
 
     boolean matchTask(SyncTask task);
 
-    boolean notify(SyncTask task);
-
+    void notify(SyncTask task);
 }

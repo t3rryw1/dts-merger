@@ -1,0 +1,24 @@
+- matchAllDatabase: false
+  matchAllTable: false
+  matchAllField: false
+  database: eadu
+  tableName: listing
+  fieldNames:
+    - title
+    - lat
+    - lng
+    - description
+  method: POST
+  path: https://staging.cozystay.com.cn/api/v2/admin/${listing_id}/listings/${title}
+
+- matchAllDatabase: false
+  matchAllTable: false
+  matchAllField: false
+  database: jakku
+  tableName: user
+  fieldNames:
+    - nickname
+    - gender
+    - birthDay
+  method: POST
+  path: https://staging.cozystay.com.cn/api/v2/admin/update_user/${user_id}
