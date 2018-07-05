@@ -3,8 +3,8 @@ package com.cozystay;
 import com.cozystay.datasource.BinLogDataSourceImpl;
 import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncTask;
-import com.cozystay.notify.SyncNotifier;
 import com.cozystay.notify.HttpSyncNotifierImpl;
+import com.cozystay.notify.SyncNotifier;
 import com.cozystay.structure.ProcessedTaskPool;
 import com.cozystay.structure.RedisProcessedTaskPool;
 import com.cozystay.structure.SimpleTaskRunnerImpl;
@@ -14,7 +14,6 @@ import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -71,7 +70,7 @@ public class NotifyDaemon implements Daemon {
                         return;
                     }
 
-                    if(notifier.matchTask(toProcess)){
+                    if (notifier.matchTask(toProcess)) {
                         notifier.notify(toProcess);
                     }
 
@@ -124,26 +123,13 @@ public class NotifyDaemon implements Daemon {
         onStartNotify();
 
 
-        Signal.handle(new Signal("TERM"), new SignalHandler() {
-            // Signal handler method for CTRL-C and simple kill command.
-            public void handle(Signal signal) {
-                onStopNotify();
-            }
-        });
-        Signal.handle(new Signal("INT"), new SignalHandler() {
-            // Signal handler method for kill -INT command
+        // Signal handler method for CTRL-C and simple kill command.
+        Signal.handle(new Signal("TERM"), signal -> onStopNotify());
+        // Signal handler method for kill -INT command
+        Signal.handle(new Signal("INT"), signal -> onStopNotify());
 
-            public void handle(Signal signal) {
-                onStopNotify();
-            }
-        });
-
-        Signal.handle(new Signal("HUP"), new SignalHandler() {
-            // Signal handler method for kill -HUP command
-            public void handle(Signal signal) {
-                onStopNotify();
-            }
-        });
+        // Signal handler method for kill -HUP command
+        Signal.handle(new Signal("HUP"), signal -> onStopNotify());
     }
 
 
