@@ -13,7 +13,6 @@ import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 import java.sql.SQLException;
 import java.text.ParseException;
@@ -128,8 +127,7 @@ public class SyncDaemon implements Daemon {
                     synchronized (primaryPool) {
                         if (primaryPool.hasTask(task)) {
                             secondaryPool.add(task);
-                            return;
-                        }else{
+                        } else {
                             primaryPool.add(task);
                             secondaryPool.remove(task);
                             logger.info("add task to primary pool: {}" + task.toString());
@@ -277,26 +275,13 @@ public class SyncDaemon implements Daemon {
         onStartSync();
 
 
-        Signal.handle(new Signal("TERM"), new SignalHandler() {
-            // Signal handler method for CTRL-C and simple kill command.
-            public void handle(Signal signal) {
-                onStopSync();
-            }
-        });
-        Signal.handle(new Signal("INT"), new SignalHandler() {
-            // Signal handler method for kill -INT command
+        // Signal handler method for CTRL-C and simple kill command.
+        Signal.handle(new Signal("TERM"), signal -> onStopSync());
+        // Signal handler method for kill -INT command
+        Signal.handle(new Signal("INT"), signal -> onStopSync());
 
-            public void handle(Signal signal) {
-                onStopSync();
-            }
-        });
-
-        Signal.handle(new Signal("HUP"), new SignalHandler() {
-            // Signal handler method for kill -HUP command
-            public void handle(Signal signal) {
-                onStopSync();
-            }
-        });
+        // Signal handler method for kill -HUP command
+        Signal.handle(new Signal("HUP"), signal -> onStopSync());
     }
 
 

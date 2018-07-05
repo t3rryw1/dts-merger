@@ -435,10 +435,10 @@ class BinLogEventParser {
                 break;
             }
             default: {
-                throw new IllegalArgumentException("Can't parse Illegal ColumnType");
+                throw new IllegalArgumentException(String.format("Can't parse Illegal ColumnType of field %s", field.columnName));
             }
         }
-        throw new IllegalArgumentException("Illegal value type to actual field");
+        throw new IllegalArgumentException(String.format("Illegal value type to actual field %s", field.columnName));
     }
 
     private static Integer convertNegativeInteger(Integer integer, Long mask) {
