@@ -19,7 +19,7 @@ public abstract class SimpleTaskRunnerImpl implements TaskRunner {
         this.threadNumber = threadNumber;
         BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
         executor = new ThreadPoolExecutor(threadNumber,
-                50,
+                100,
                 10000,
                 TimeUnit.SECONDS,
                 queue);

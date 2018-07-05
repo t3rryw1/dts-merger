@@ -16,7 +16,9 @@ import sun.misc.Signal;
 
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
@@ -37,6 +39,8 @@ public class SyncDaemon implements Daemon {
         Integer threadNumber = Integer.valueOf(prop.getProperty("threadNumber", "5"));
         logger.info("Running with {} threads", threadNumber);
 
+        Integer expiredTime = Integer.valueOf(prop.getProperty("expiredTime", "36000"));
+        logger.info("Current expiring time {} ", expiredTime);
 
         String redisHost;
         if ((redisHost = prop.getProperty("redis.host")) == null) {
@@ -75,7 +79,7 @@ public class SyncDaemon implements Daemon {
                     if (toProcess == null) {
                         return;
                     }
-//                    logger.info("work on task: {}" + toProcess.toString());
+
 
                     for (DataSource source :
                             dataSources) {
@@ -107,6 +111,18 @@ public class SyncDaemon implements Daemon {
                             }
                         }
                     }
+
+                    SyncOperation lastOperation = toProcess.firstOperation();
+
+                    if (lastOperation != null
+                            && !lastOperation.getSyncStatus().values().contains(SyncOperation.SyncStatus.INIT)
+                            &&
+                            lastOperation.getTime() +  1000 * expiredTime < new Date().getTime()) {
+                        logger.error("removed expired task: {}, date {}", toProcess.toString(),
+                        new SimpleDateFormat().format(new Date(lastOperation.getTime())));
+                        return;
+                    }
+
                     if (!toProcess.allOperationsCompleted()) {
                         primaryPool.add(toProcess);
                     }
@@ -130,8 +146,8 @@ public class SyncDaemon implements Daemon {
                         } else {
                             primaryPool.add(task);
                             secondaryPool.remove(task);
-                            logger.info("add task to primary pool: {}" + task.toString());
-                            logger.info("remove task from secondary pool: {}" + task.toString());
+                            logger.info("add task to primary pool: {}", task.toString());
+                            logger.info("remove task from secondary pool: {}", task.toString());
 
                         }
                     }
@@ -146,10 +162,10 @@ public class SyncDaemon implements Daemon {
                     @Override
                     public void consumeData(SyncTask newTask) {
                         if (newTask.getOperations().size() > 1) {
-                            logger.error("new task should not have multiple operations: {}" + newTask.toString());
+                            logger.error("new task should not have multiple operations: {}", newTask.toString());
                             return;
                         }
-                        logger.info("begin to work on new task: {}" + newTask.toString());
+                        logger.info("begin to work on new task: {}", newTask.toString());
 
                         synchronized (secondaryPool) {
 
@@ -157,7 +173,7 @@ public class SyncDaemon implements Daemon {
 
                                 if (!primaryPool.hasTask(newTask)) {
                                     primaryPool.add(newTask);
-                                    logger.info("add new task to primary queue: {}" + newTask.toString());
+                                    logger.info("add new task to primary queue: {}", newTask.toString());
                                     return;
                                 }
 
@@ -167,9 +183,9 @@ public class SyncDaemon implements Daemon {
                                     primaryPool.remove(currentTask);
                                     if (!mergedTask.allOperationsCompleted()) {
                                         primaryPool.add(mergedTask);
-                                        logger.info("add merged task : {}" + mergedTask.toString());
+                                        logger.info("add merged task : {}", mergedTask.toString());
                                     } else {
-                                        logger.info("removed task: {}" + mergedTask.toString());
+                                        logger.info("removed task: {}", mergedTask.toString());
 
                                     }
                                     return;
