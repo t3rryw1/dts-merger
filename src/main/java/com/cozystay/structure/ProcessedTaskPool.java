@@ -13,7 +13,6 @@ public interface ProcessedTaskPool {
 
     SyncTask poll();
 
-    SyncTask peek();
 
     SyncTask get(String taskId);
 

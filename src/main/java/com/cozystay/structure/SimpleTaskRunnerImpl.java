@@ -20,7 +20,7 @@ public abstract class SimpleTaskRunnerImpl implements TaskRunner {
         BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>();
         executor = new ThreadPoolExecutor(threadNumber,
                 100,
-                10000,
+                20,
                 TimeUnit.SECONDS,
                 queue);
     }
