@@ -99,6 +99,8 @@ public class SyncDaemon implements Daemon {
                     for (SyncOperation operation : toProcess.getOperations()) {
                         if (operation.shouldSendToSource(source.getName())) {
                             try {
+                                logger.info("proceed to executing sql ");
+
                                 if (source.writeDB(operation)) {
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
                                     logger.info("write operation {} to source {} succeed.",
