@@ -113,6 +113,27 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     }
 
     @Override
+    public SyncTask peek() {
+        Set<String> keySet = redisClient.zrange(this.setKeyName, 0, 0);
+        if (keySet.isEmpty()) {
+            return null;
+        }
+        String key = keySet.iterator().next();
+        SyncTask task;
+        try {
+
+            task = get(key);
+            return task;
+
+        } catch (Exception e) {
+            logger.error(String.format("Error key is: %s", key));
+            logger.error(e.getMessage());
+            remove(key);
+            return null;
+        }
+    }
+
+    @Override
     public synchronized SyncTask get(String taskId) {
         byte[] taskBytes = redisClient.hget(this.hashKeyName.getBytes(), taskId.getBytes());
         return KryoEncodeHelper.decode(this.kryo, taskBytes, SyncTask.class);
