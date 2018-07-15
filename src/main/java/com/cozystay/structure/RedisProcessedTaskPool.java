@@ -5,25 +5,28 @@ import com.cozystay.model.SyncOperationImpl;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskImpl;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Set;
 
 public class RedisProcessedTaskPool implements ProcessedTaskPool {
+    private static Logger logger = LoggerFactory.getLogger(RedisProcessedTaskPool.class);
     public static final String DATA_NOTIFY_HASH_KEY = "cozy-notify-hash";
     public static final String DATA_NOTIFY_SET_KEY = "cozy-notify-sort-set";
     public static final String DATA_PRIMARY_HASH_KEY = "cozy-data-hash";
     public static final String DATA_PRIMARY_SET_KEY = "cozy-data-sort-set";
     public static final String DATA_SECONDARY_HASH_KEY = "cozy-sec-data-hash";
     public static final String DATA_SECONDARY_SET_KEY = "cozy-sec-data-sort-set";
+    public static final String DATA_SEND_HASH_KEY = "cozy-send-data-hash";
+    public static final String DATA_SEND_SET_KEY = "cozy-send-data-sort-set";
+    public static final String DATA_QUEUE_KEY = "cozy-queue-key";
 
     private Jedis redisClient;
     private Kryo kryo;
@@ -40,7 +43,7 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
         JedisPool jedisPool = new JedisPool(host, port);
 
         redisClient = jedisPool.getResource();
-        if(!password.equals("")){
+        if (!password.equals("")) {
             redisClient.auth(password);
 
         }
@@ -56,7 +59,7 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
 
     @Override
     public void add(SyncTask task) {
-        byte[] taskArray = encode(kryo, task);
+        byte[] taskArray = KryoEncodeHelper.encode(kryo, task);
         Transaction transaction = redisClient.multi();
         transaction.hset(this.hashKeyName.getBytes(), task.getId().getBytes(), taskArray);
         transaction.zadd(this.setKeyName,
@@ -91,48 +94,36 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
         if (keySet.isEmpty()) {
             return null;
         }
-        String key = (String) keySet.toArray()[0];
-        SyncTask task = get(key);
-        remove(key);
-        return task;
+        String key = keySet.iterator().next();
+        SyncTask task;
+        try {
 
-    }
+            task = get(key);
+            return task;
 
-    @Override
-    public SyncTask peek() {
-        Set<String> keySet = redisClient.zrange(this.setKeyName, 0, 0);
-        if (keySet.isEmpty()) {
+        } catch (Exception e) {
+            logger.error(String.format("Error key is: %s", key));
+            logger.error(e.getMessage());
             return null;
+        } finally {
+            remove(key);
+
         }
-        String key = (String) keySet.toArray()[0];
-        return get(key);
+
     }
 
     @Override
     public synchronized SyncTask get(String taskId) {
         byte[] taskBytes = redisClient.hget(this.hashKeyName.getBytes(), taskId.getBytes());
-        return decode(this.kryo, taskBytes);
+        return KryoEncodeHelper.decode(this.kryo, taskBytes, SyncTask.class);
     }
 
     @Override
     public void destroy() {
-        if(redisClient!=null && redisClient.isConnected()){
+        if (redisClient != null && redisClient.isConnected()) {
             redisClient.disconnect();
         }
     }
-
-    private static byte[] encode(Kryo kryo, Object obj) {
-        ByteArrayOutputStream objStream = new ByteArrayOutputStream();
-        Output objOutput = new Output(objStream);
-        kryo.writeClassAndObject(objOutput, obj);
-        objOutput.close();
-        return objStream.toByteArray();
-    }
-
-    private static <T> T decode(Kryo kryo, byte[] bytes) {
-        return (T) kryo.readClassAndObject(new Input(bytes));
-    }
-
 
 
 }

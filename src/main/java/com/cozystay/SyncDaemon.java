@@ -4,10 +4,7 @@ import com.cozystay.datasource.BinLogDataSourceImpl;
 import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
-import com.cozystay.structure.ProcessedTaskPool;
-import com.cozystay.structure.RedisProcessedTaskPool;
-import com.cozystay.structure.SimpleTaskRunnerImpl;
-import com.cozystay.structure.TaskRunner;
+import com.cozystay.structure.*;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
@@ -26,8 +23,10 @@ public class SyncDaemon implements Daemon {
 
     private static Logger logger = LoggerFactory.getLogger(SyncDaemon.class);
 
+    private static TaskRunner queueRunner;
     private static TaskRunner primaryRunner;
     private static TaskRunner secondaryRunner;
+    private static TaskRunner doneRunner;
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
     private final static List<DataSource> dataSources = new ArrayList<>();
@@ -69,6 +68,18 @@ public class SyncDaemon implements Daemon {
                 RedisProcessedTaskPool.DATA_SECONDARY_HASH_KEY,
                 RedisProcessedTaskPool.DATA_SECONDARY_SET_KEY);
 
+        final ProcessedTaskPool donePool = new RedisProcessedTaskPool(redisHost,
+                redisPort,
+                redisPassword,
+                RedisProcessedTaskPool.DATA_SEND_HASH_KEY,
+                RedisProcessedTaskPool.DATA_SEND_SET_KEY);
+
+
+        final TaskQueue todoQueue = new RedisTaskQueue(redisHost,
+                redisPort,
+                redisPassword,
+                RedisProcessedTaskPool.DATA_QUEUE_KEY);
+
         primaryRunner = new SimpleTaskRunnerImpl(1, threadNumber) {
 
             @Override
@@ -79,56 +90,81 @@ public class SyncDaemon implements Daemon {
                     if (toProcess == null) {
                         return;
                     }
+                }
 
-
-                    for (DataSource source :
-                            dataSources) {
-                        if (!source.isRunning()) {
-                            continue;
-                        }
-                        for (SyncOperation operation : toProcess.getOperations()) {
-                            if (operation.shouldSendToSource(source.getName())) {
-                                try {
-                                    if (source.writeDB(operation)) {
-                                        operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
-                                        logger.info("write operation {} to source {} succeed.",
-                                                operation.toString(),
-                                                source.getName());
-                                    } else {
-                                        operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
-                                        logger.error("wrote operation {} to source {} but return no result. ",
-                                                operation.toString(),
-                                                source.getName());
-                                    }
-                                } catch (SQLException e) {
-                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
-                                    logger.error("write operation {} to source {} failed and skipped. ",
+                for (DataSource source :
+                        dataSources) {
+                    if (!source.isRunning()) {
+                        continue;
+                    }
+                    for (SyncOperation operation : toProcess.getOperations()) {
+                        if (operation.shouldSendToSource(source.getName())) {
+                            try {
+                                if (source.writeDB(operation)) {
+                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
+                                    logger.info("write operation {} to source {} succeed.",
                                             operation.toString(),
                                             source.getName());
-
+                                } else {
+                                    operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
+                                    logger.error("wrote operation {} to source {} but return no result. ",
+                                            operation.toString(),
+                                            source.getName());
                                 }
+                            } catch (SQLException e) {
+                                operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
+                                logger.error("write operation {} to source {} failed and skipped. ",
+                                        operation.toString(),
+                                        source.getName());
 
                             }
+
                         }
+                    }
+                }
+
+                synchronized (donePool) {
+
+                    if (!toProcess.allOperationsCompleted()) {
+                        donePool.add(toProcess);
+
+                    }
+                }
+
+            }
+        };
+
+        doneRunner = new SimpleTaskRunnerImpl(1, 5) {
+
+            @Override
+            public void workOn() {
+                SyncTask toProcess;
+
+                synchronized (donePool) {
+                    toProcess = donePool.poll();
+
+                    if (toProcess == null) {
+                        return;
                     }
 
                     SyncOperation lastOperation = toProcess.firstOperation();
 
                     if (lastOperation != null
-                            && !lastOperation.getSyncStatus().values().contains(SyncOperation.SyncStatus.INIT)
                             &&
-                            lastOperation.getTime() +  1000 * expiredTime < new Date().getTime()) {
+                            !lastOperation.getSyncStatus().values().contains(SyncOperation.SyncStatus.INIT)
+                            &&
+                            lastOperation.getTime() + 1000 * expiredTime < new Date().getTime()) {
                         logger.error("removed expired task: {}, date {}", toProcess.toString(),
-                        new SimpleDateFormat().format(new Date(lastOperation.getTime())));
+                                new SimpleDateFormat().format(new Date(lastOperation.getTime())));
                         return;
                     }
+                    donePool.add(toProcess);
 
-                    if (!toProcess.allOperationsCompleted()) {
-                        primaryPool.add(toProcess);
-                    }
                 }
+
             }
         };
+
 
         secondaryRunner = new SimpleTaskRunnerImpl(1, 5) {
 
@@ -136,16 +172,17 @@ public class SyncDaemon implements Daemon {
             public void workOn() {
                 SyncTask task;
                 synchronized (secondaryPool) {
-                    task = secondaryPool.poll();
-                    if (task == null) {
-                        return;
-                    }
                     synchronized (primaryPool) {
-                        if (primaryPool.hasTask(task)) {
+                        task = secondaryPool.poll();
+
+                        if (task == null) {
+                            return;
+                        }
+
+                        if (primaryPool.hasTask(task) || donePool.hasTask(task)) {
                             secondaryPool.add(task);
                         } else {
                             primaryPool.add(task);
-                            secondaryPool.remove(task);
                             logger.info("add task to primary pool: {}", task.toString());
                             logger.info("remove task from secondary pool: {}", task.toString());
 
@@ -154,6 +191,58 @@ public class SyncDaemon implements Daemon {
                 }
             }
         };
+
+        queueRunner = new SimpleTaskRunnerImpl(1, 5) {
+
+            @Override
+            public void workOn() {
+
+                SyncTask newTask;
+                synchronized (todoQueue) {
+                    newTask = todoQueue.pop();
+                }
+                if (newTask == null) {
+                    return;
+                }
+                logger.info("begin to work on new task: {}", newTask.toString());
+
+                synchronized (secondaryPool) {
+                    synchronized (primaryPool) {
+
+                        synchronized (donePool) {
+                            if (donePool.hasTask(newTask)) {
+                                SyncTask currentTask = donePool.get(newTask.getId());
+                                if (currentTask.canMergeStatus(newTask.firstOperation())) {
+                                    SyncTask mergedTask = currentTask.mergeStatus(newTask);
+                                    donePool.remove(currentTask);
+                                    if (!mergedTask.allOperationsCompleted()) {
+                                        donePool.add(mergedTask);
+                                        logger.info("add merged task : {}", mergedTask.toString());
+                                    } else {
+                                        logger.info("removed task: {}", mergedTask.toString());
+
+                                    }
+                                    return;
+
+                                }
+
+                            }
+                        }
+                        if (!primaryPool.hasTask(newTask)) {
+                            primaryPool.add(newTask);
+                            logger.info("add new task to primary queue: {}", newTask.toString());
+                            return;
+                        }
+                    }
+
+                    logger.info("add new task to second pool: {}" + newTask.toString());
+                    addTaskToSecondaryQueue(secondaryPool, newTask);
+
+                }
+
+            }
+        };
+
 
         for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
             final int currentIndex = i;
@@ -165,35 +254,9 @@ public class SyncDaemon implements Daemon {
                             logger.error("new task should not have multiple operations: {}", newTask.toString());
                             return;
                         }
-                        logger.info("begin to work on new task: {}", newTask.toString());
-
-                        synchronized (secondaryPool) {
-
-                            synchronized (primaryPool) {
-
-                                if (!primaryPool.hasTask(newTask)) {
-                                    primaryPool.add(newTask);
-                                    logger.info("add new task to primary queue: {}", newTask.toString());
-                                    return;
-                                }
-
-                                SyncTask currentTask = primaryPool.get(newTask.getId());
-                                if (currentTask.canMergeStatus(newTask.firstOperation())) {
-                                    SyncTask mergedTask = currentTask.mergeStatus(newTask);
-                                    primaryPool.remove(currentTask);
-                                    if (!mergedTask.allOperationsCompleted()) {
-                                        primaryPool.add(mergedTask);
-                                        logger.info("add merged task : {}", mergedTask.toString());
-                                    } else {
-                                        logger.info("removed task: {}", mergedTask.toString());
-
-                                    }
-                                    return;
-                                }
-                            }
-
-                            logger.info("add new task to second pool: {}" + newTask.toString());
-                            addTaskToSecondaryQueue(secondaryPool, newTask);
+                        synchronized (todoQueue) {
+                            todoQueue.push(newTask);
+                            logger.info("add new task to queue: {}", newTask.toString());
                         }
                     }
 
@@ -212,7 +275,10 @@ public class SyncDaemon implements Daemon {
 
         }
 
-        for (DataSource source : dataSources) {
+        for (
+                DataSource source : dataSources)
+
+        {
             source.init();
         }
 
@@ -220,8 +286,10 @@ public class SyncDaemon implements Daemon {
 
     private static void onStartSync() {
         System.out.println("start");
+        queueRunner.start();
         primaryRunner.start();
         secondaryRunner.start();
+        doneRunner.start();
         for (DataSource source : dataSources) {
             source.start();
         }
@@ -243,8 +311,10 @@ public class SyncDaemon implements Daemon {
             System.out.println("stopped sources ");
 
         }
+        queueRunner.stop();
         primaryRunner.stop();
         secondaryRunner.stop();
+        doneRunner.stop();
 
 
     }
