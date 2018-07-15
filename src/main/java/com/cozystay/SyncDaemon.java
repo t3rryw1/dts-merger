@@ -86,8 +86,7 @@ public class SyncDaemon implements Daemon {
             public void workOn() {
                 SyncTask toProcess;
                 synchronized (primaryPool) {
-                    toProcess = primaryPool.poll();
-                    if (toProcess == null) {
+                    if ((toProcess = primaryPool.poll()) == null) {
                         return;
                     }
                 }
@@ -123,12 +122,35 @@ public class SyncDaemon implements Daemon {
                     }
                 }
 
+                if (toProcess.allOperationsCompleted()) {
+                    logger.info("removed completed task: {}", toProcess.toString());
+                    return;
+                }
+
                 synchronized (donePool) {
 
-                    if (!toProcess.allOperationsCompleted()) {
+
+                    if (!donePool.hasTask(toProcess)) {
                         donePool.add(toProcess);
+                        logger.info("add task to done pool: {}", toProcess.toString());
+                        return;
 
                     }
+                    SyncTask currentTask = donePool.get(toProcess.getId());
+                    if (!currentTask.canMergeStatus(toProcess.firstOperation())) {
+                        logger.error("removed faulty task: {}", toProcess.toString());
+                        return;
+                    }
+                    SyncTask mergedTask = currentTask.mergeStatus(toProcess);
+                    donePool.remove(currentTask);
+                    if (mergedTask.allOperationsCompleted()) {
+                        logger.info("removed task: {}", mergedTask.toString());
+                        return;
+                    }
+                    donePool.add(mergedTask);
+                    logger.info("add merged task : {}", mergedTask.toString());
+
+
                 }
 
             }
@@ -141,9 +163,7 @@ public class SyncDaemon implements Daemon {
                 SyncTask toProcess;
 
                 synchronized (donePool) {
-                    toProcess = donePool.poll();
-
-                    if (toProcess == null) {
+                    if ((toProcess = donePool.poll()) == null) {
                         return;
                     }
 
@@ -173,9 +193,7 @@ public class SyncDaemon implements Daemon {
                 SyncTask task;
                 synchronized (secondaryPool) {
                     synchronized (primaryPool) {
-                        task = secondaryPool.poll();
-
-                        if (task == null) {
+                        if ((task = secondaryPool.poll()) == null) {
                             return;
                         }
 
@@ -183,8 +201,8 @@ public class SyncDaemon implements Daemon {
                             secondaryPool.add(task);
                         } else {
                             primaryPool.add(task);
-                            logger.info("add task to primary pool: {}", task.toString());
-                            logger.info("remove task from secondary pool: {}", task.toString());
+                            logger.info("add task to primary pool and remove from secondary pool: {}",
+                                    task.toString());
 
                         }
                     }
@@ -199,10 +217,9 @@ public class SyncDaemon implements Daemon {
 
                 SyncTask newTask;
                 synchronized (todoQueue) {
-                    newTask = todoQueue.pop();
-                }
-                if (newTask == null) {
-                    return;
+                    if ((newTask = todoQueue.pop()) == null) {
+                        return;
+                    }
                 }
                 logger.info("begin to work on new task: {}", newTask.toString());
 
@@ -212,19 +229,21 @@ public class SyncDaemon implements Daemon {
                         synchronized (donePool) {
                             if (donePool.hasTask(newTask)) {
                                 SyncTask currentTask = donePool.get(newTask.getId());
-                                if (currentTask.canMergeStatus(newTask.firstOperation())) {
-                                    SyncTask mergedTask = currentTask.mergeStatus(newTask);
-                                    donePool.remove(currentTask);
-                                    if (!mergedTask.allOperationsCompleted()) {
-                                        donePool.add(mergedTask);
-                                        logger.info("add merged task : {}", mergedTask.toString());
-                                    } else {
-                                        logger.info("removed task: {}", mergedTask.toString());
-
-                                    }
+                                if (!currentTask.canMergeStatus(newTask.firstOperation())) {
+                                    logger.info("add new task to second pool: {}" + newTask.toString());
+                                    addTaskToSecondaryQueue(secondaryPool, newTask);
                                     return;
 
                                 }
+                                SyncTask mergedTask = currentTask.mergeStatus(newTask);
+                                donePool.remove(currentTask);
+                                if (mergedTask.allOperationsCompleted()) {
+                                    logger.info("removed task: {}", mergedTask.toString());
+                                    return;
+                                }
+                                donePool.add(mergedTask);
+                                logger.info("add merged task : {}", mergedTask.toString());
+                                return;
 
                             }
                         }

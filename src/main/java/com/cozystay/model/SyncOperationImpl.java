@@ -79,7 +79,9 @@ public class SyncOperationImpl implements SyncOperation {
         return syncItems;
     }
 
-    public String getSource() { return this.source; }
+    public String getSource() {
+        return this.source;
+    }
 
     @Override
     public Map<String, SyncStatus> getSyncStatus() {
@@ -100,7 +102,7 @@ public class SyncOperationImpl implements SyncOperation {
                 List<String> keys = new ArrayList<>(), values = new ArrayList<>();
                 for (SyncItem item : getSyncItems()) {
                     if (item.currentValue != null) {
-                        keys.add("`"+item.fieldName+"`");
+                        keys.add("`" + item.fieldName + "`");
                         values.add(item.currentValueToString());
                     }
                 }
@@ -123,9 +125,9 @@ public class SyncOperationImpl implements SyncOperation {
                         continue;
                     }
                     if (item.currentValue == null) {
-                        operations.add(String.format(" %s = %s ", "`"+item.fieldName+"`", "NULL"));
+                        operations.add(String.format(" %s = %s ", "`" + item.fieldName + "`", "NULL"));
                     } else {
-                        operations.add(String.format(" %s = %s ", "`"+item.fieldName+"`", item.currentValueToString()));
+                        operations.add(String.format(" %s = %s ", "`" + item.fieldName + "`", item.currentValueToString()));
 
                     }
                 }
@@ -151,7 +153,7 @@ public class SyncOperationImpl implements SyncOperation {
             if (item.originValue == null) {
                 return null;
             }
-            conditions.add(String.format(" %s = %s ", "`"+item.fieldName+"`", item.originValueToString()));
+            conditions.add(String.format(" %s = %s ", "`" + item.fieldName + "`", item.originValueToString()));
         }
         if (conditions.size() == 0) {
             return null;
@@ -168,17 +170,13 @@ public class SyncOperationImpl implements SyncOperation {
         if (!operation.getOperationType().equals(this.getOperationType()))
             return false;
         //if both operation are to delete the item, consider them the same operation
-        if (operation.getOperationType().equals(OperationType.DELETE))
-            return true;
-        if (operation.getOperationType().equals(OperationType.CREATE))
-            return true;
-        if (!operation.getSyncItems().containsAll(this.getSyncItems())) {
-            return false;
-        }
-        if (!this.getSyncItems().containsAll(operation.getSyncItems())) {
-            return false;
-        }
-        return true;
+        return operation.getOperationType().equals(OperationType.DELETE)
+                ||
+                operation.getOperationType().equals(OperationType.CREATE)
+                ||
+                operation.getSyncItems().containsAll(this.getSyncItems())
+                        &&
+                        this.getSyncItems().containsAll(operation.getSyncItems());
     }
 
     @Override
@@ -329,7 +327,7 @@ public class SyncOperationImpl implements SyncOperation {
                 if (selfItem.fieldName.equals(toMergeItem.fieldName)) {
                     //found item with same field, check timestamp,
                     //replace item with newer one if necessary
-                    if (toMergeOp.getTime()>(this.getTime())) {
+                    if (toMergeOp.getTime() > (this.getTime())) {
                         mergedItems.remove(selfItem);
                         mergedItems.add(toMergeItem);
                     }
@@ -340,12 +338,12 @@ public class SyncOperationImpl implements SyncOperation {
             //if no match found in selfItems, add the item to itemList
             mergedItems.add(toMergeItem);
         }
-        Long operationTime = toMergeOp.getTime()>(this.getTime())
+        Long operationTime = toMergeOp.getTime() > (this.getTime())
                 ?
                 toMergeOp.getTime()
                 :
                 getTime();
-        operationTime = operationTime+100;
+        operationTime = operationTime + 100;
         List<String> sourceList = new ArrayList<>(syncStatusMap.keySet());
 
         return new SyncOperationImpl(
