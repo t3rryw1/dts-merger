@@ -5,6 +5,7 @@ import com.cozystay.model.SyncOperationImpl;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskImpl;
 import com.esotericsoftware.kryo.Kryo;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
@@ -14,21 +15,16 @@ import java.util.LinkedList;
 
 public class RedisTaskQueue implements TaskQueue {
 
-    private final Jedis redisClient;
     private final Kryo kryo;
     private final String queueKeyName;
+    private final JedisPool jedisPool;
 
     public RedisTaskQueue(String host,
                           int port,
                           String password,
                           String queueKeyName) {
-        JedisPool jedisPool = new JedisPool(host, port);
+        jedisPool = new JedisPool(new GenericObjectPoolConfig(), host, port, 2000, password);
 
-        redisClient = jedisPool.getResource();
-        if (!password.equals("")) {
-            redisClient.auth(password);
-
-        }
         kryo = new Kryo();
         kryo.register(SyncTaskImpl.class);
         kryo.register(SyncOperationImpl.class);
@@ -40,34 +36,40 @@ public class RedisTaskQueue implements TaskQueue {
 
     @Override
     public void push(SyncTask task) {
+        try (Jedis redisClient = jedisPool.getResource()) {
 
-        byte[] taskArray = KryoEncodeHelper.encode(kryo, task);
-        Transaction transaction = redisClient.multi();
-        transaction.rpush(this.queueKeyName.getBytes(), taskArray);
-        transaction.exec();
+            byte[] taskArray = KryoEncodeHelper.encode(kryo, task);
+            Transaction transaction = redisClient.multi();
+            transaction.rpush(this.queueKeyName.getBytes(), taskArray);
+            transaction.exec();
+        }
     }
 
     @Override
     public SyncTask pop() {
-        if(size()>0) {
-            byte[] response = redisClient.lpop(this.queueKeyName.getBytes());
-            return KryoEncodeHelper.decode(kryo, response, SyncTask.class);
-        }else{
-            return null;
+        try (Jedis redisClient = jedisPool.getResource()) {
+
+            if (redisClient.llen(this.queueKeyName.getBytes()).intValue() > 0) {
+                byte[] response = redisClient.lpop(this.queueKeyName.getBytes());
+                return KryoEncodeHelper.decode(kryo, response, SyncTask.class);
+            } else {
+                return null;
+            }
         }
     }
 
     @Override
     public int size() {
-        return redisClient.llen(this.queueKeyName.getBytes()).intValue();
+        try (Jedis redisClient = jedisPool.getResource()) {
+
+            return redisClient.llen(this.queueKeyName.getBytes()).intValue();
+        }
     }
 
 
     @Override
     public void destroy() {
-        if (redisClient != null && redisClient.isConnected()) {
-            redisClient.disconnect();
-        }
+        jedisPool.close();
     }
 
 

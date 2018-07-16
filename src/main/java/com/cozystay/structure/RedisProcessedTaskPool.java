@@ -5,6 +5,7 @@ import com.cozystay.model.SyncOperationImpl;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskImpl;
 import com.esotericsoftware.kryo.Kryo;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -27,8 +28,8 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
     public static final String DATA_SEND_HASH_KEY = "cozy-send-data-hash";
     public static final String DATA_SEND_SET_KEY = "cozy-send-data-sort-set";
     public static final String DATA_QUEUE_KEY = "cozy-queue-key";
+    private final JedisPool jedisPool;
 
-    private Jedis redisClient;
     private Kryo kryo;
 
     private String hashKeyName;
@@ -40,13 +41,8 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
                                   String password,
                                   String hashKeyName,
                                   String setKeyName) {
-        JedisPool jedisPool = new JedisPool(host, port);
+        jedisPool = new JedisPool(new GenericObjectPoolConfig(), host, port, 2000, password);
 
-        redisClient = jedisPool.getResource();
-        if (!password.equals("")) {
-            redisClient.auth(password);
-
-        }
         kryo = new Kryo();
         kryo.register(SyncTaskImpl.class);
         kryo.register(SyncOperationImpl.class);
@@ -57,16 +53,18 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
         this.setKeyName = setKeyName;
     }
 
+
     @Override
     public void add(SyncTask task) {
-        byte[] taskArray = KryoEncodeHelper.encode(kryo, task);
-        Transaction transaction = redisClient.multi();
-        transaction.hset(this.hashKeyName.getBytes(), task.getId().getBytes(), taskArray);
-        transaction.zadd(this.setKeyName,
-                new Date().getTime(),
-                task.getId());
-        transaction.exec();
-
+        try (Jedis redisClient = jedisPool.getResource()) {
+            byte[] taskArray = KryoEncodeHelper.encode(kryo, task);
+            Transaction transaction = redisClient.multi();
+            transaction.hset(this.hashKeyName.getBytes(), task.getId().getBytes(), taskArray);
+            transaction.zadd(this.setKeyName,
+                    new Date().getTime(),
+                    task.getId());
+            transaction.exec();
+        }
     }
 
     @Override
@@ -77,73 +75,87 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
 
     @Override
     public void remove(String taskId) {
-        Transaction transaction = redisClient.multi();
-        transaction.hdel(this.hashKeyName.getBytes(), taskId.getBytes());
-        transaction.zrem(this.setKeyName, taskId);
-        transaction.exec();
+        try (Jedis redisClient = jedisPool.getResource()) {
+
+            Transaction transaction = redisClient.multi();
+            transaction.hdel(this.hashKeyName.getBytes(), taskId.getBytes());
+            transaction.zrem(this.setKeyName, taskId);
+            transaction.exec();
+        }
     }
 
     @Override
     public boolean hasTask(SyncTask task) {
-        return redisClient.hexists(this.hashKeyName, task.getId());
+        try (Jedis redisClient = jedisPool.getResource()) {
+
+            return redisClient.hexists(this.hashKeyName, task.getId());
+        }
     }
 
     @Override
     public synchronized SyncTask poll() {
-        Set<String> keySet = redisClient.zrange(this.setKeyName, 0, 0);
-        if (keySet.isEmpty()) {
-            return null;
-        }
-        String key = keySet.iterator().next();
-        SyncTask task;
-        try {
+        try (Jedis redisClient = jedisPool.getResource()) {
 
-            task = get(key);
-            return task;
+            Set<String> keySet = redisClient.zrange(this.setKeyName, 0, 0);
+            if (keySet.isEmpty()) {
+                return null;
+            }
+            String key = keySet.iterator().next();
+            SyncTask task;
+            try {
 
-        } catch (Exception e) {
-            logger.error(String.format("Error key is: %s", key));
-            logger.error(e.getMessage());
-            return null;
-        } finally {
-            remove(key);
+                task = get(key);
+                return task;
 
+            } catch (Exception e) {
+                logger.error(String.format("Error key is: %s", key));
+                logger.error(e.getMessage());
+                return null;
+            } finally {
+                remove(key);
+
+            }
         }
 
     }
 
     @Override
     public SyncTask peek() {
-        Set<String> keySet = redisClient.zrange(this.setKeyName, 0, 0);
-        if (keySet.isEmpty()) {
-            return null;
-        }
-        String key = keySet.iterator().next();
-        SyncTask task;
-        try {
+        try (Jedis redisClient = jedisPool.getResource()) {
 
-            task = get(key);
-            return task;
+            Set<String> keySet = redisClient.zrange(this.setKeyName, 0, 0);
+            if (keySet.isEmpty()) {
+                return null;
+            }
+            String key = keySet.iterator().next();
+            SyncTask task;
+            try {
 
-        } catch (Exception e) {
-            logger.error(String.format("Error key is: %s", key));
-            logger.error(e.getMessage());
-            remove(key);
-            return null;
+                task = get(key);
+                return task;
+
+            } catch (Exception e) {
+                logger.error(String.format("Error key is: %s", key));
+                logger.error(e.getMessage());
+                remove(key);
+                return null;
+            }
         }
     }
 
     @Override
     public synchronized SyncTask get(String taskId) {
-        byte[] taskBytes = redisClient.hget(this.hashKeyName.getBytes(), taskId.getBytes());
-        return KryoEncodeHelper.decode(this.kryo, taskBytes, SyncTask.class);
+        try (Jedis redisClient = jedisPool.getResource()) {
+
+            byte[] taskBytes = redisClient.hget(this.hashKeyName.getBytes(), taskId.getBytes());
+            return KryoEncodeHelper.decode(this.kryo, taskBytes, SyncTask.class);
+        }
     }
 
     @Override
     public void destroy() {
-        if (redisClient != null && redisClient.isConnected()) {
-            redisClient.disconnect();
-        }
+        jedisPool.close();
+
     }
 
 
