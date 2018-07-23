@@ -55,30 +55,30 @@ public class SyncDaemon implements Daemon {
             throw new ParseException("redis.password", 8);
         }
 
-        final ProcessedTaskPool primaryPool = new RedisProcessedTaskPool(redisHost,
+        final TaskPool primaryPool = new RedisTaskPoolImpl(redisHost,
                 redisPort,
                 redisPassword,
-                RedisProcessedTaskPool.DATA_PRIMARY_HASH_KEY,
-                RedisProcessedTaskPool.DATA_PRIMARY_SET_KEY);
+                QueueConstants.DATA_PRIMARY_HASH_KEY,
+                QueueConstants.DATA_PRIMARY_SET_KEY);
 
 
-        final ProcessedTaskPool secondaryPool = new RedisProcessedTaskPool(redisHost,
+        final TaskPool secondaryPool = new RedisTaskPoolImpl(redisHost,
                 redisPort,
                 redisPassword,
-                RedisProcessedTaskPool.DATA_SECONDARY_HASH_KEY,
-                RedisProcessedTaskPool.DATA_SECONDARY_SET_KEY);
+                QueueConstants.DATA_SECONDARY_HASH_KEY,
+                QueueConstants.DATA_SECONDARY_SET_KEY);
 
-        final ProcessedTaskPool donePool = new RedisProcessedTaskPool(redisHost,
+        final TaskPool donePool = new RedisTaskPoolImpl(redisHost,
                 redisPort,
                 redisPassword,
-                RedisProcessedTaskPool.DATA_SEND_HASH_KEY,
-                RedisProcessedTaskPool.DATA_SEND_SET_KEY);
+                QueueConstants.DATA_SEND_HASH_KEY,
+                QueueConstants.DATA_SEND_SET_KEY);
 
 
-        final TaskQueue todoQueue = new RedisTaskQueue(redisHost,
+        final TaskQueue todoQueue = new RedisTaskQueueImpl(redisHost,
                 redisPort,
                 redisPassword,
-                RedisProcessedTaskPool.DATA_QUEUE_KEY);
+                QueueConstants.DATA_QUEUE_KEY);
 
         primaryRunner = new SimpleTaskRunnerImpl(1, threadNumber) {
 
@@ -340,7 +340,7 @@ public class SyncDaemon implements Daemon {
 
     }
 
-    private static void addTaskToSecondaryQueue(ProcessedTaskPool taskPool, SyncTask task) {
+    private static void addTaskToSecondaryQueue(TaskPool taskPool, SyncTask task) {
         if (!taskPool.hasTask(task)) {
             taskPool.add(task);
 
