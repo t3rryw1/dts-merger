@@ -5,12 +5,12 @@ import com.cozystay.model.SyncTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class SimpleProcessedTaskPool implements ProcessedTaskPool {
+public class SimpleTaskPoolImpl implements TaskPool {
     private ConcurrentHashMap<String, SyncTask> taskMap;
     private ConcurrentLinkedQueue<String> idQueue;
 
 
-    public SimpleProcessedTaskPool() {
+    public SimpleTaskPoolImpl() {
         taskMap = new ConcurrentHashMap<>();
         idQueue = new ConcurrentLinkedQueue<>();
     }

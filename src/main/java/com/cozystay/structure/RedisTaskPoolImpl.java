@@ -17,17 +17,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.Set;
 
-public class RedisProcessedTaskPool implements ProcessedTaskPool {
-    private static Logger logger = LoggerFactory.getLogger(RedisProcessedTaskPool.class);
-    public static final String DATA_NOTIFY_HASH_KEY = "cozy-notify-hash";
-    public static final String DATA_NOTIFY_SET_KEY = "cozy-notify-sort-set";
-    public static final String DATA_PRIMARY_HASH_KEY = "cozy-data-hash";
-    public static final String DATA_PRIMARY_SET_KEY = "cozy-data-sort-set";
-    public static final String DATA_SECONDARY_HASH_KEY = "cozy-sec-data-hash";
-    public static final String DATA_SECONDARY_SET_KEY = "cozy-sec-data-sort-set";
-    public static final String DATA_SEND_HASH_KEY = "cozy-send-data-hash";
-    public static final String DATA_SEND_SET_KEY = "cozy-send-data-sort-set";
-    public static final String DATA_QUEUE_KEY = "cozy-queue-key";
+public class RedisTaskPoolImpl implements TaskPool {
+    private static Logger logger = LoggerFactory.getLogger(RedisTaskPoolImpl.class);
     private final JedisPool jedisPool;
 
     private Kryo kryo;
@@ -36,11 +27,11 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
 
     private String setKeyName;
 
-    public RedisProcessedTaskPool(String host,
-                                  int port,
-                                  String password,
-                                  String hashKeyName,
-                                  String setKeyName) {
+    public RedisTaskPoolImpl(String host,
+                             int port,
+                             String password,
+                             String hashKeyName,
+                             String setKeyName) {
         jedisPool = new JedisPool(new GenericObjectPoolConfig(), host, port, 2000, password);
 
         kryo = new Kryo();
@@ -64,6 +55,8 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
                     new Date().getTime(),
                     task.getId());
             transaction.exec();
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
         }
     }
 
@@ -81,6 +74,9 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
             transaction.hdel(this.hashKeyName.getBytes(), taskId.getBytes());
             transaction.zrem(this.setKeyName, taskId);
             transaction.exec();
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
+
         }
     }
 
@@ -89,6 +85,9 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
         try (Jedis redisClient = jedisPool.getResource()) {
 
             return redisClient.hexists(this.hashKeyName, task.getId());
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
+            return false;
         }
     }
 
@@ -115,6 +114,9 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
                 remove(key);
 
             }
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
+            return null;
         }
 
     }
@@ -140,6 +142,9 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
                 remove(key);
                 return null;
             }
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
+            return null;
         }
     }
 
@@ -149,6 +154,9 @@ public class RedisProcessedTaskPool implements ProcessedTaskPool {
 
             byte[] taskBytes = redisClient.hget(this.hashKeyName.getBytes(), taskId.getBytes());
             return KryoEncodeHelper.decode(this.kryo, taskBytes, SyncTask.class);
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
+            return null;
         }
     }
 

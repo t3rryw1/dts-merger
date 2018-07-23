@@ -5,10 +5,7 @@ import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncTask;
 import com.cozystay.notify.HttpSyncNotifierImpl;
 import com.cozystay.notify.SyncNotifier;
-import com.cozystay.structure.ProcessedTaskPool;
-import com.cozystay.structure.RedisProcessedTaskPool;
-import com.cozystay.structure.SimpleTaskRunnerImpl;
-import com.cozystay.structure.TaskRunner;
+import com.cozystay.structure.*;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
@@ -53,11 +50,11 @@ public class NotifyDaemon implements Daemon {
         notifier = new HttpSyncNotifierImpl();
         notifier.loadRules(prop);
 
-        final ProcessedTaskPool primaryPool = new RedisProcessedTaskPool(redisHost,
+        final TaskPool primaryPool = new RedisTaskPoolImpl(redisHost,
                 redisPort,
                 redisPassword,
-                RedisProcessedTaskPool.DATA_NOTIFY_HASH_KEY,
-                RedisProcessedTaskPool.DATA_NOTIFY_SET_KEY);
+                QueueConstants.DATA_NOTIFY_HASH_KEY,
+                QueueConstants.DATA_NOTIFY_SET_KEY);
 
         primaryRunner = new SimpleTaskRunnerImpl(1, threadNumber) {
 

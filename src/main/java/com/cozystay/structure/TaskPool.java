@@ -2,7 +2,7 @@ package com.cozystay.structure;
 
 import com.cozystay.model.SyncTask;
 
-public interface ProcessedTaskPool {
+public interface TaskPool {
     void add(SyncTask task);
 
     void remove(SyncTask task);
