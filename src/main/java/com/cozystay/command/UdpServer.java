@@ -2,23 +2,50 @@ package com.cozystay.command;
 
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
-import com.cozystay.structure.RedisProcessedTaskPool;
+import com.cozystay.structure.TaskPool;
+import com.cozystay.structure.TaskQueue;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import com.esotericsoftware.kryonet.Server;
 import com.cozystay.command.MessageCategories.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class UdpServer extends Thread  {
     private final int port;
-    private final RedisProcessedTaskPool pool;
+    private final TaskPool primaryPool;
+    private final TaskPool secondaryPool;
+    private final TaskPool donePool;
+    private final TaskPool failedPool;
+    private final TaskQueue todoQueue;
 
-    public UdpServer(int port, RedisProcessedTaskPool pool) {
+    public UdpServer(int port, TaskPool primaryPool,
+                     TaskPool secondaryPool,
+                     TaskPool donePool,
+                     TaskPool failedPool,
+                     TaskQueue todoQueue) {
         this.port = port;
-        this.pool = pool;
+        this.primaryPool = primaryPool;
+        this.secondaryPool = secondaryPool;
+        this.donePool = donePool;
+        this.failedPool = failedPool;
+        this.todoQueue = todoQueue;
+    }
+
+    private Task ProcessTask (Task response, SyncTask task) {
+        switch (response.operationType) {
+            case VIEW:
+                response.database = task.getDatabase();
+                response.table = task.getTable();
+                response.operations = task.getOperations();
+                response.success = true;
+            case REMOVE:
+                primaryPool.remove(task);
+                secondaryPool.remove(task);
+                donePool.remove(task);
+        }
+
+        return response;
     }
 
     public void run(){
@@ -32,72 +59,45 @@ public class UdpServer extends Thread  {
                     connection.sendUDP(response);
                 }
 
-                if (object instanceof GlobalStatus) {
-                    GlobalStatus response = (GlobalStatus) object;
-                    //TODO: get following Fields: FinishedTaskNumInHour/PrimayQueueTaskNum/SecondQueueTaskNum/FailedTaskNum
-                    connection.sendUDP(response);
-                }
-
-                if (object instanceof TaskDetail) {
-                    TaskDetail response = (TaskDetail) object;
-                    SyncTask task = pool.get(response.taskId);
-
-                    if(task == null){
-                        response.success = false;
-                        response.message = "not found task: " + response.taskId;
-                        connection.sendUDP(response);
-                        return;
-                    }
-
-                    response.database = task.getDatabase();
-                    response.table = task.getTable();
-                    response.operations = task.getOperations();
+                if (object instanceof Status) {
+                    Status response = (Status) object;
+                    response.FinishedTaskNumInHour = null;
+                    response.PrimayQueueTaskNum = primaryPool.size();
+                    response.SecondQueueTaskNum = secondaryPool.size();
+                    response.DonePoolTaskNum = donePool.size();
+                    response.FailedTaskNum = failedPool.size();
                     response.success = true;
+
                     connection.sendUDP(response);
+
+                    failedPool.removeAll();
                 }
 
-                if (object instanceof TaskReset) {
-                    TaskReset response = (TaskReset) object;
-                    SyncTask task = pool.get(response.taskId);
+                if (object instanceof Task) {
+                    Task response = (Task) object;
 
-                    if(task == null){
-                        response.success = false;
-                        response.message = "not found task: " + response.taskId;
-                        connection.sendUDP(response);
+                    SyncTask primaryTask = primaryPool.get(response.taskId);
+                    if (primaryTask != null) {
+                        connection.sendUDP(ProcessTask(response, primaryTask));
                         return;
                     }
 
-                    pool.remove(task);
-
-                    for(SyncOperation operation :task.getOperations()) {
-                        List<String> keys = new ArrayList<>(operation.getSyncStatus().keySet());
-                        for (String key : keys) {
-                            SyncOperation.SyncStatus status = operation.getSyncStatus().get(key);
-
-                            if (status != SyncOperation.SyncStatus.COMPLETED) {
-                                operation.updateStatus(key,  SyncOperation.SyncStatus.INIT);
-                            }
-                        }
-                    }
-
-                    pool.add(task);
-                    response.success = true;
-                    connection.sendUDP(response);
-                }
-
-                if (object instanceof TaskRemove) {
-                    TaskRemove response = (TaskRemove) object;
-                    SyncTask task = pool.get(response.taskId);
-
-                    if(task == null){
-                        response.success = false;
-                        response.message = "not found task: " + response.taskId;
-                        connection.sendUDP(response);
+                    SyncTask secondaryTask = secondaryPool.get(response.taskId);
+                    if (secondaryTask != null) {
+                        connection.sendUDP(ProcessTask(response, secondaryTask));
                         return;
                     }
 
-                    pool.remove(task);
+                    SyncTask donePoolTask = donePool.get(response.taskId);
+                    if (donePoolTask != null) {
+                        connection.sendUDP(ProcessTask(response, donePoolTask));
+                        return;
+                    }
+
+                    response.success = false;
+                    response.message = "not found task: " + response.taskId;
                     connection.sendUDP(response);
+                    return;
                 }
                 connection.close();
             }

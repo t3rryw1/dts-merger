@@ -23,23 +23,12 @@ public class UdpSender {
                     System.out.print(response.message);
                 }
 
-                if (object instanceof GlobalStatus) {
-                    GlobalStatus response = (GlobalStatus) object;
-
+                if (object instanceof Status) {
+                    Status response = (Status) object;
                 }
 
-                if (object instanceof TaskDetail) {
-                    TaskDetail response = (TaskDetail) object;
-                }
-
-                if (object instanceof TaskReset) {
-                    TaskReset response = (TaskReset) object;
-
-                }
-
-                if (object instanceof TaskRemove) {
-                    TaskRemove response = (TaskRemove) object;
-
+                if (object instanceof Task) {
+                    Task response = (Task) object;
                 }
 
                 client.stop();
@@ -55,24 +44,20 @@ public class UdpSender {
     }
 
     public void requestGlobalStatus() {
-        GlobalStatus data = new GlobalStatus();
+        Status data = new Status();
         client.sendUDP(data);
     }
 
     public void requestTaskDetail(String taskId) {
-        TaskDetail data = new TaskDetail();
-        data.taskId = taskId;
-        client.sendUDP(data);
-    }
-
-    public void requestTaskReset(String taskId) {
-        TaskReset data = new TaskReset();
+        Task data = new Task();
+        data.operationType = OperationType.VIEW;
         data.taskId = taskId;
         client.sendUDP(data);
     }
 
     public void requestTaskRemove(String taskId) {
-        TaskRemove data = new TaskRemove();
+        Task data = new Task();
+        data.operationType = OperationType.REMOVE;
         data.taskId = taskId;
         client.sendUDP(data);
     }

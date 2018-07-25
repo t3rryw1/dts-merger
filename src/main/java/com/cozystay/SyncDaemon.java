@@ -5,6 +5,7 @@ import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.structure.*;
+import com.cozystay.command.UdpServer;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
@@ -74,11 +75,26 @@ public class SyncDaemon implements Daemon {
                 QueueConstants.DATA_SEND_HASH_KEY,
                 QueueConstants.DATA_SEND_SET_KEY);
 
+        final TaskPool failedPool = new RedisTaskPoolImpl(redisHost,
+                redisPort,
+                redisPassword,
+                QueueConstants.DATA_FAIL_HASH_KEY,
+                QueueConstants.DATA_FAIL_SET_KEY);
+
 
         final TaskQueue todoQueue = new RedisTaskQueueImpl(redisHost,
                 redisPort,
                 redisPassword,
                 QueueConstants.DATA_QUEUE_KEY);
+
+        final UdpServer commandServer = new UdpServer(
+                Integer.valueOf(prop.getProperty("udpServerPort")),
+                primaryPool,
+                secondaryPool,
+                donePool,
+                failedPool,
+                todoQueue);
+        commandServer.start();
 
         primaryRunner = new SimpleTaskRunnerImpl(1, threadNumber) {
 
@@ -118,8 +134,8 @@ public class SyncDaemon implements Daemon {
                                         operation.toString(),
                                         source.getName());
 
+                                failedPool.add(toProcess);
                             }
-
                         }
                     }
                 }

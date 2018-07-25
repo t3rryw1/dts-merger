@@ -7,6 +7,11 @@ import com.cozystay.model.SyncOperation;
 import java.util.List;
 
 public class MessageCategories {
+    enum OperationType {
+        VIEW,
+        REMOVE
+    }
+
     static public void register (EndPoint endPoint) {
         Kryo kryo = endPoint.getKryo();
         kryo.register(SimplifyMessage.class);
@@ -16,32 +21,21 @@ public class MessageCategories {
         public String message;
     }
 
-    static public class GlobalStatus {
-        public int FinishedTaskNumInHour;
-        public int PrimayQueueTaskNum;
-        public int SecondQueueTaskNum;
-        public int FailedTaskNum;
-        public String message;
+    static public class Status {
+        public Long FinishedTaskNumInHour;
+        public Long PrimayQueueTaskNum;
+        public Long SecondQueueTaskNum;
+        public Long DonePoolTaskNum;
+        public Long FailedTaskNum;
         public boolean success;
     }
 
-    static public class TaskDetail {
+    static public class Task {
+        public OperationType operationType;
         public String taskId;
         public String database;
         public String table;
         public List<SyncOperation> operations;
-        public String message;
-        public boolean success;
-    }
-
-    static public class TaskReset {
-        public String taskId;
-        public String message;
-        public boolean success;
-    }
-
-    static public class TaskRemove {
-        public String taskId;
         public String message;
         public boolean success;
     }

@@ -15,6 +15,9 @@ public interface TaskPool {
 
     SyncTask peek();
 
+    Long size();
+
+    void removeAll();
 
     SyncTask get(String taskId);
 
