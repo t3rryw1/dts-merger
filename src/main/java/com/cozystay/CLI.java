@@ -30,8 +30,6 @@ public class CLI {
         private int port = 0;
         @Parameter(names =  {"--view"}, description = "view syncTask by id", order = 2)
         private boolean view = false;
-        @Parameter(names =  {"--reset"}, description = "reset syncTask to primary queue", order = 3)
-        private boolean reset = false;
         @Parameter(names =  {"--remove"}, description = "remove syncTask from it's queue", order = 4)
         private boolean remove = false;
     }
@@ -77,10 +75,6 @@ public class CLI {
 
             if(task.view){
                 client.requestTaskDetail(task.taskId);
-            }
-
-            if(task.reset){
-                client.requestTaskReset(task.taskId);
             }
 
             if(task.remove){

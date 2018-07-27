@@ -1,6 +1,5 @@
 package com.cozystay.command;
 
-import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.structure.TaskPool;
 import com.cozystay.structure.TaskQueue;
@@ -10,26 +9,58 @@ import com.esotericsoftware.kryonet.Server;
 import com.cozystay.command.MessageCategories.*;
 
 import java.io.IOException;
+import java.util.*;
 
 public class UdpServer extends Thread  {
+    private Server server;
     private final int port;
     private final TaskPool primaryPool;
     private final TaskPool secondaryPool;
     private final TaskPool donePool;
     private final TaskPool failedPool;
     private final TaskQueue todoQueue;
+    private LinkedList<TaskRecord> finishedTaskInHour;
 
     public UdpServer(int port, TaskPool primaryPool,
                      TaskPool secondaryPool,
                      TaskPool donePool,
                      TaskPool failedPool,
                      TaskQueue todoQueue) {
+        this.server = new Server();
         this.port = port;
         this.primaryPool = primaryPool;
         this.secondaryPool = secondaryPool;
         this.donePool = donePool;
         this.failedPool = failedPool;
         this.todoQueue = todoQueue;
+        this.finishedTaskInHour = new LinkedList<>();
+    }
+
+    class TaskRecord {
+        private final SyncTask task;
+        private final Long recordTime;
+
+        TaskRecord(SyncTask task){
+            this.task = task;
+            this.recordTime = new Date().getTime();
+        }
+    }
+
+    private static Long getOneHoursAgoTime () {
+        Calendar cal = Calendar.getInstance ();
+        cal.set(Calendar.HOUR , Calendar.HOUR - 1);
+        return cal.getTime().getTime();
+    }
+
+    public void addRecord(SyncTask task) {
+        Long hourAgoTime = getOneHoursAgoTime();
+        TaskRecord record = new TaskRecord(task);
+
+        finishedTaskInHour.add(record);
+
+        while (finishedTaskInHour.getFirst().recordTime < hourAgoTime) {
+            finishedTaskInHour.removeFirst();
+        }
     }
 
     private Task ProcessTask (Task response, SyncTask task) {
@@ -48,8 +79,11 @@ public class UdpServer extends Thread  {
         return response;
     }
 
+    public void stopServer() {
+        this.server.stop();
+    }
+
     public void run(){
-        Server server = new Server();
         server.start();
         server.addListener(new Listener() {
             public void received (Connection connection, Object object) {
@@ -61,8 +95,8 @@ public class UdpServer extends Thread  {
 
                 if (object instanceof Status) {
                     Status response = (Status) object;
-                    response.FinishedTaskNumInHour = null;
-                    response.PrimayQueueTaskNum = primaryPool.size();
+                    response.FinishedTaskNumInHour = finishedTaskInHour.size();
+                    response.PrimaryQueueTaskNum = primaryPool.size();
                     response.SecondQueueTaskNum = secondaryPool.size();
                     response.DonePoolTaskNum = donePool.size();
                     response.FailedTaskNum = failedPool.size();

@@ -15,6 +15,9 @@ public class MessageCategories {
     static public void register (EndPoint endPoint) {
         Kryo kryo = endPoint.getKryo();
         kryo.register(SimplifyMessage.class);
+        kryo.register(Status.class);
+        kryo.register(Task.class);
+        kryo.register(OperationType.class);
     }
 
     static public class SimplifyMessage {
@@ -22,8 +25,8 @@ public class MessageCategories {
     }
 
     static public class Status {
-        public Long FinishedTaskNumInHour;
-        public Long PrimayQueueTaskNum;
+        public int FinishedTaskNumInHour;
+        public Long PrimaryQueueTaskNum;
         public Long SecondQueueTaskNum;
         public Long DonePoolTaskNum;
         public Long FailedTaskNum;

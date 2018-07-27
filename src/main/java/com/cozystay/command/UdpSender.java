@@ -25,10 +25,18 @@ public class UdpSender {
 
                 if (object instanceof Status) {
                     Status response = (Status) object;
+                    System.out.print(response.FinishedTaskNumInHour);
+                    System.out.print(response.PrimaryQueueTaskNum);
+                    System.out.print(response.SecondQueueTaskNum);
+                    System.out.print(response.DonePoolTaskNum);
+                    System.out.print(response.FailedTaskNum);
+                    System.out.print(response.success);
                 }
 
                 if (object instanceof Task) {
                     Task response = (Task) object;
+                    System.out.print(response.message);
+                    System.out.print(response.success);
                 }
 
                 client.stop();
