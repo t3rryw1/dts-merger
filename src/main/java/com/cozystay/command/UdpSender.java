@@ -1,5 +1,6 @@
 package com.cozystay.command;
 
+import com.cozystay.model.SyncOperation;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
@@ -36,9 +37,20 @@ public class UdpSender {
                 if (object instanceof Task) {
                     Task response = (Task) object;
                     System.out.print(response.message + "\n");
-                    System.out.print("operation" + response.success + "\n");
+                    switch (response.operationType) {
+                        case REMOVE:
+                        case VIEW:
+                            System.out.print("task id: " + response.taskId + "\n");
+                            System.out.print("task database name: " + response.database + "\n");
+                            System.out.print("task table name: " + response.table + "\n");
+                            System.out.print("operations: \n");
+                            for (SyncOperation operation : response.operations) {
+                                System.out.print(operation.toString());
+                            }
+                            System.out.print("\n");
+                    }
+                    System.out.print("success:" + response.success + "\n");
                 }
-
                 client.stop();
             }
 
@@ -47,7 +59,7 @@ public class UdpSender {
             }
         }));
 
-        client.connect(1000, address, port, port);
+        client.connect(6000, address, port, port);
         MessageCategories.register(client);
     }
 
