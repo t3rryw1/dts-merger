@@ -41,6 +41,7 @@ public class UdpSender {
                         case REMOVE:
                         case VIEW:
                             System.out.print("task id: " + response.taskId + "\n");
+                            System.out.print("task currently in: " + response.currentPoolName.toString() + "\n");
                             System.out.print("task database name: " + response.database + "\n");
                             System.out.print("task table name: " + response.table + "\n");
                             System.out.print("operations: \n");

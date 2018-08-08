@@ -4,6 +4,8 @@ import com.beust.jcommander.*;
 import com.cozystay.command.UdpSender;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.util.Properties;
 
 public class CLI {
     @Parameter(names = {"--help", "-h"}, description = "view usage", order = 0)
@@ -35,6 +37,9 @@ public class CLI {
     }
 
     public void run(CLI cli, String[] argv) throws IOException {
+        Properties prop = new Properties();
+        prop.load(CLI.class.getResourceAsStream("/db-config.properties"));
+
         CommandStatus status = new CommandStatus();
         CommandTask task = new CommandTask();
 
@@ -47,13 +52,13 @@ public class CLI {
         jCommander.parse(argv);
 
         if(help){
-            jCommander.setProgramName("Data Sync CLI");
+            jCommander.setProgramName(prop.getProperty("cli.name"));
             jCommander.usage();
             return;
         }
 
         if(version){
-            JCommander.getConsole().println("1.0.0");
+            JCommander.getConsole().println(prop.getProperty("cli.version"));
             return;
         }
 

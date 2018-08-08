@@ -151,19 +151,10 @@ public class RedisTaskPoolImpl implements TaskPool {
     @Override
     public Long size() {
         try (Jedis redisClient = jedisPool.getResource()) {
-            return redisClient.dbSize();
+            return redisClient.zcard(this.setKeyName);
         }catch (Exception ex){
             logger.error(ex.getMessage());
             return null;
-        }
-    }
-
-    @Override
-    public void removeAll() {
-        try (Jedis redisClient = jedisPool.getResource()) {
-            redisClient.flushDB();
-        }catch (Exception ex){
-            logger.error(ex.getMessage());
         }
     }
 

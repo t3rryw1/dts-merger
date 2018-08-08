@@ -86,7 +86,7 @@ public class SyncDaemon implements Daemon {
                 QueueConstants.DATA_QUEUE_KEY);
 
         commandServer = new UdpServer(
-                Integer.valueOf(prop.getProperty("udpServerPort")),
+                Integer.valueOf(prop.getProperty("udpServer.port")),
                 primaryPool,
                 secondaryPool,
                 donePool,

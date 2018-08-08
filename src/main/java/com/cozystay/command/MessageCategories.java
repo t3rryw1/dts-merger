@@ -12,6 +12,13 @@ public class MessageCategories {
         REMOVE
     }
 
+    enum CurrentPoolName {
+        PRIMARY,
+        SECONDARY,
+        DONE,
+        FAILED
+    }
+
     static public void register (EndPoint endPoint) {
         Kryo kryo = endPoint.getKryo();
         kryo.register(SimplifyMessage.class);
@@ -36,6 +43,7 @@ public class MessageCategories {
     static public class Task {
         public OperationType operationType;
         public String taskId;
+        public CurrentPoolName currentPoolName;
         public String database;
         public String table;
         public List<SyncOperation> operations;

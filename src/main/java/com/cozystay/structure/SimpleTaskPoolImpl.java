@@ -34,11 +34,6 @@ public class SimpleTaskPoolImpl implements TaskPool {
     }
 
     @Override
-    public void removeAll() {
-
-    }
-
-    @Override
     public Long size() {
         return null;
     }

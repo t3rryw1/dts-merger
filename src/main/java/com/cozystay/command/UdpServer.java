@@ -63,10 +63,11 @@ public class UdpServer extends Thread  {
         }
     }
 
-    private Task ProcessTask (Task response, SyncTask task, TaskPool pool) {
+    private Task ProcessTask (Task response, SyncTask task, TaskPool pool, CurrentPoolName currentPoolName) {
         switch (response.operationType) {
             case VIEW:
                 response.message = "view task: " + task.getId();
+                response.currentPoolName = currentPoolName;
                 response.database = task.getDatabase();
                 response.table = task.getTable();
                 response.operations = task.getOperations();
@@ -106,8 +107,6 @@ public class UdpServer extends Thread  {
                     response.success = true;
 
                     connection.sendUDP(response);
-
-                    failedPool.removeAll();
                 }
 
                 if (object instanceof Task) {
@@ -115,19 +114,25 @@ public class UdpServer extends Thread  {
 
                     SyncTask primaryTask = primaryPool.get(response.taskId);
                     if (primaryTask != null) {
-                        connection.sendUDP(ProcessTask(response, primaryTask, primaryPool));
+                        connection.sendUDP(ProcessTask(response, primaryTask, primaryPool, CurrentPoolName.PRIMARY));
                         return;
                     }
 
                     SyncTask secondaryTask = secondaryPool.get(response.taskId);
                     if (secondaryTask != null) {
-                        connection.sendUDP(ProcessTask(response, secondaryTask, secondaryPool));
+                        connection.sendUDP(ProcessTask(response, secondaryTask, secondaryPool, CurrentPoolName.SECONDARY));
                         return;
                     }
 
                     SyncTask donePoolTask = donePool.get(response.taskId);
                     if (donePoolTask != null) {
-                        connection.sendUDP(ProcessTask(response, donePoolTask, donePool));
+                        connection.sendUDP(ProcessTask(response, donePoolTask, donePool, CurrentPoolName.DONE));
+                        return;
+                    }
+
+                    SyncTask failedPoolTask = failedPool.get(response.taskId);
+                    if (failedPoolTask != null) {
+                        connection.sendUDP(ProcessTask(response, failedPoolTask, failedPool, CurrentPoolName.FAILED));
                         return;
                     }
 
