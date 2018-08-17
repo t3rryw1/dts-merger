@@ -5,7 +5,6 @@ import com.cozystay.model.SyncOperationImpl;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskImpl;
 import com.esotericsoftware.kryo.Kryo;
-import jdk.internal.instrumentation.Logger;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
