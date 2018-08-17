@@ -38,7 +38,7 @@ public class SimpleDBWriterImpl implements Writer {
         Statement statement = null;
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true",
                             this.address,
                             this.port,
                             operation.getTask().getDatabase()),
