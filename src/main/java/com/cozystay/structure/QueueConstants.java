@@ -9,5 +9,7 @@ public class QueueConstants {
     public static final String DATA_SECONDARY_SET_KEY = "cozy-sec-data-sort-set";
     public static final String DATA_SEND_HASH_KEY = "cozy-send-data-hash";
     public static final String DATA_SEND_SET_KEY = "cozy-send-data-sort-set";
+    public static final String DATA_FAIL_HASH_KEY = "cozy-fail-data-hash";
+    public static final String DATA_FAIL_SET_KEY = "cozy-fail-data-sort-set";
     public static final String DATA_QUEUE_KEY = "cozy-queue-key";
 }

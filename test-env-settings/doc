@@ -1,0 +1,28 @@
+docker run \
+  -e MYSQL_ROOT_PASSWORD=qwerqwer \
+  -d \
+  --name mysql \
+  -v /var/lib/mysql \
+  -p 33308:3306 \
+  mysql:5.7 \
+  mysqld \
+  --datadir=/var/lib/mysql \
+  --user=mysql \
+  --server-id=1 \
+  --log-bin=/var/lib/mysql/mysql-bin.log \
+  --binlog_do_db=test
+
+
+docker run \
+  -e MYSQL_ROOT_PASSWORD=qwerqwer \
+  -d \
+  --name mysql3 \
+  -v /var/lib/mysql \
+  -p 33309:3306 \
+  mysql:5.7 \
+  mysqld \
+  --datadir=/var/lib/mysql \
+  --user=mysql \
+  --server-id=1 \
+  --log-bin=/var/lib/mysql/mysql-bin.log \
+  --binlog_do_db=test

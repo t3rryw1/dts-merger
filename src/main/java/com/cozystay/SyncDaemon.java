@@ -5,6 +5,7 @@ import com.cozystay.datasource.DataSource;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.structure.*;
+import com.cozystay.command.UdpServer;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
@@ -14,10 +15,7 @@ import sun.misc.Signal;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class SyncDaemon implements Daemon {
 
@@ -27,6 +25,7 @@ public class SyncDaemon implements Daemon {
     private static TaskRunner primaryRunner;
     private static TaskRunner secondaryRunner;
     private static TaskRunner doneRunner;
+    private static UdpServer commandServer;
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
     private final static List<DataSource> dataSources = new ArrayList<>();
@@ -74,11 +73,25 @@ public class SyncDaemon implements Daemon {
                 QueueConstants.DATA_SEND_HASH_KEY,
                 QueueConstants.DATA_SEND_SET_KEY);
 
+        final TaskPool failedPool = new RedisTaskPoolImpl(redisHost,
+                redisPort,
+                redisPassword,
+                QueueConstants.DATA_FAIL_HASH_KEY,
+                QueueConstants.DATA_FAIL_SET_KEY);
+
 
         final TaskQueue todoQueue = new RedisTaskQueueImpl(redisHost,
                 redisPort,
                 redisPassword,
                 QueueConstants.DATA_QUEUE_KEY);
+
+        commandServer = new UdpServer(
+                Integer.valueOf(prop.getProperty("udpServer.port")),
+                primaryPool,
+                secondaryPool,
+                donePool,
+                failedPool,
+                todoQueue);
 
         primaryRunner = new SimpleTaskRunnerImpl(1, threadNumber) {
 
@@ -118,8 +131,8 @@ public class SyncDaemon implements Daemon {
                                         operation.toString(),
                                         source.getName());
 
+                                failedPool.add(toProcess);
                             }
-
                         }
                     }
                 }
@@ -147,6 +160,7 @@ public class SyncDaemon implements Daemon {
                     donePool.remove(currentTask);
                     if (mergedTask.allOperationsCompleted()) {
                         logger.info("removed task: {}", mergedTask.toString());
+                        commandServer.addRecord(mergedTask);
                         return;
                     }
                     donePool.add(mergedTask);
@@ -296,8 +310,7 @@ public class SyncDaemon implements Daemon {
 
         }
 
-        for (
-                DataSource source : dataSources)
+        for (DataSource source : dataSources)
 
         {
             source.init();
@@ -311,6 +324,7 @@ public class SyncDaemon implements Daemon {
         primaryRunner.start();
         secondaryRunner.start();
         doneRunner.start();
+        commandServer.start();
         for (DataSource source : dataSources) {
             source.start();
         }
@@ -336,8 +350,7 @@ public class SyncDaemon implements Daemon {
         primaryRunner.stop();
         secondaryRunner.stop();
         doneRunner.stop();
-
-
+        commandServer.stopServer();
     }
 
     private static void addTaskToSecondaryQueue(TaskPool taskPool, SyncTask task) {
