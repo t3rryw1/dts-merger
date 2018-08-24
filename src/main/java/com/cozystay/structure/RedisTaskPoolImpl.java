@@ -159,6 +159,15 @@ public class RedisTaskPoolImpl implements TaskPool {
     }
 
     @Override
+    public void removeAll() {
+        try (Jedis redisClient = jedisPool.getResource()) {
+            redisClient.del(this.setKeyName);
+        }catch (Exception ex){
+            logger.error(ex.getMessage());
+        }
+    }
+
+    @Override
     public synchronized SyncTask get(String taskId) {
         try (Jedis redisClient = jedisPool.getResource()) {
 

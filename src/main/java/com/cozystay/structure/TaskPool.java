@@ -17,6 +17,8 @@ public interface TaskPool {
 
     Long size();
 
+    void removeAll();
+
     SyncTask get(String taskId);
 
     void destroy();

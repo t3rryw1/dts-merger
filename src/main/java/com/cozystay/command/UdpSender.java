@@ -19,9 +19,10 @@ public class UdpSender {
             public void connected (Connection connection) {}
             public void received (Connection connection, Object object) {
 
-                if (object instanceof SimplifyMessage) {
-                    SimplifyMessage response = (SimplifyMessage) object;
-                    System.out.print(response.message);
+                if (object instanceof DeleteQueue) {
+                    DeleteQueue response = (DeleteQueue) object;
+                    System.out.print(response.message + "\n");
+                    System.out.print("success: " + response.success + "\n");
                 }
 
                 if (object instanceof Status) {
@@ -80,6 +81,12 @@ public class UdpSender {
         Task data = new Task();
         data.operationType = OperationType.REMOVE;
         data.taskId = taskId;
+        client.sendUDP(data);
+    }
+
+    public void cleanFailedQueue() {
+        DeleteQueue data = new DeleteQueue();
+        data.deletePoolName = PoolName.FAILED;
         client.sendUDP(data);
     }
 

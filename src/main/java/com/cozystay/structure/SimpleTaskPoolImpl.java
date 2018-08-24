@@ -39,6 +39,9 @@ public class SimpleTaskPoolImpl implements TaskPool {
     }
 
     @Override
+    public void removeAll(){ }
+
+    @Override
     public boolean hasTask(SyncTask task) {
         return taskMap.containsKey(task.getId());
     }

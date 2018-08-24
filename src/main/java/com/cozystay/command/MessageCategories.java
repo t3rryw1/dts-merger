@@ -12,7 +12,7 @@ public class MessageCategories {
         REMOVE
     }
 
-    enum CurrentPoolName {
+    enum PoolName {
         PRIMARY,
         SECONDARY,
         DONE,
@@ -21,14 +21,16 @@ public class MessageCategories {
 
     static public void register (EndPoint endPoint) {
         Kryo kryo = endPoint.getKryo();
-        kryo.register(SimplifyMessage.class);
+        kryo.register(DeleteQueue.class);
         kryo.register(Status.class);
         kryo.register(Task.class);
         kryo.register(OperationType.class);
     }
 
-    static public class SimplifyMessage {
+    static public class DeleteQueue {
+        public PoolName deletePoolName;
         public String message;
+        public boolean success;
     }
 
     static public class Status {
@@ -43,7 +45,7 @@ public class MessageCategories {
     static public class Task {
         public OperationType operationType;
         public String taskId;
-        public CurrentPoolName currentPoolName;
+        public PoolName currentPoolName;
         public String database;
         public String table;
         public List<SyncOperation> operations;
