@@ -1,6 +1,7 @@
 package com.cozystay.db;
 
 import com.cozystay.model.SyncOperation;
+import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import org.apache.commons.dbcp2.*;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
@@ -33,7 +34,7 @@ public class SimpleDBWriterImpl implements Writer {
     }
 
     @Override
-    public boolean write(SyncOperation operation) throws SQLException {
+    public int write(SyncOperation operation) throws SQLException {
         Connection conn = null;
         Statement statement = null;
         try {
@@ -47,11 +48,22 @@ public class SimpleDBWriterImpl implements Writer {
 
             statement = conn.createStatement();
             String sql = operation.buildSql();
+
             logger.info("executing sql {}", sql);
-            return sql != null && statement.executeUpdate(sql) > 0;
+            if(sql==null){
+                return 0;
+            }
+            statement.addBatch("SET FOREIGN_KEY_CHECKS = 0");
+            statement.addBatch(sql);
+            statement.addBatch("SET FOREIGN_KEY_CHECKS = 1");
+            return statement.executeBatch()[1];
+
 
         } catch (SQLException e) {
             logger.error(e.getMessage());
+            if (e instanceof CommunicationsException) {
+                return -1;
+            }
             throw e;
         } finally {
             try {
@@ -104,7 +116,7 @@ public class SimpleDBWriterImpl implements Writer {
             //
             dataSource =
                     new PoolingDataSource<>(connectionPool);
-            dataSourceMap.put(url,dataSource);
+            dataSourceMap.put(url, dataSource);
 
         }
         try {

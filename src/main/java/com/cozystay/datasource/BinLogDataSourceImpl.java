@@ -112,8 +112,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     @Override
-    public boolean writeDB(SyncOperation operation) throws SQLException {
-        return this.writer.write(operation);
+    public int writeDB(SyncOperation operation) throws SQLException {
+        return writer.write(operation);
     }
 
     @Override

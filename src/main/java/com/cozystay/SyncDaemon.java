@@ -100,17 +100,25 @@ public class SyncDaemon implements Daemon {
                         if (operation.shouldSendToSource(source.getName())) {
                             try {
                                 logger.info("proceed to executing sql ");
-
-                                if (source.writeDB(operation)) {
+                                int result = source.writeDB(operation);
+                                if (result > 0) {
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
                                     logger.info("write operation {} to source {} succeed.",
                                             operation.toString(),
                                             source.getName());
-                                } else {
+                                } else if (result == 0) {
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
                                     logger.error("wrote operation {} to source {} but return no result. ",
                                             operation.toString(),
                                             source.getName());
+                                } else {
+                                    //if connection error, retry this query.
+                                    synchronized (primaryPool) {
+                                        logger.error(" add operation {} back and retry later.",
+                                                operation.toString());
+                                        primaryPool.add(toProcess);
+                                        return;
+                                    }
                                 }
                             } catch (SQLException e) {
                                 operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);

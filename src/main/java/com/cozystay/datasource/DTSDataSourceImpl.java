@@ -84,7 +84,7 @@ public abstract class DTSDataSourceImpl implements DataSource {
     }
 
     @Override
-    public boolean writeDB(SyncOperation operation) throws SQLException {
+    public int writeDB(SyncOperation operation) throws SQLException {
         return this.writer.write(operation);
 
     }
