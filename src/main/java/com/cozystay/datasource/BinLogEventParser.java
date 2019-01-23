@@ -3,6 +3,7 @@ package com.cozystay.datasource;
 import com.cozystay.db.schema.SchemaField;
 import com.cozystay.db.schema.SchemaLoader;
 import com.cozystay.db.schema.SchemaTable;
+import com.cozystay.model.SyncItem;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
@@ -153,7 +154,7 @@ class BinLogEventParser {
             uuidBuilder.addValue(primaryValue.toString());
         }
 
-        SyncOperation.SyncItem item = buildItem(field,
+        SyncItem item = buildItem(field,
                 oldValue,
                 newValue,
                 type);
@@ -178,10 +179,10 @@ class BinLogEventParser {
         return builder;
     }
 
-    private SyncOperation.SyncItem buildItem(SchemaField field,
-                                             Serializable oldValue,
-                                             Serializable newValue,
-                                             SyncOperation.OperationType operationType)
+    private SyncItem buildItem(SchemaField field,
+                               Serializable oldValue,
+                               Serializable newValue,
+                               SyncOperation.OperationType operationType)
             throws UnsupportedEncodingException {
 
         switch (Objects.requireNonNull(field.columnType)) {
@@ -191,7 +192,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -204,7 +205,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -216,7 +217,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Double)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Double)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -229,7 +230,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.BigDecimal)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.BigDecimal)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -245,7 +246,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.String)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.String)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -265,7 +266,7 @@ class BinLogEventParser {
                             break;
                         }
                     }
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -279,7 +280,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -290,7 +291,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             convertNegativeInteger((Integer) oldValue, 4294967296L),
                             convertNegativeInteger((Integer) newValue, 4294967296L),
                             field.columnType,
@@ -301,7 +302,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             convertNegativeInteger((Integer) oldValue, 256L),
                             convertNegativeInteger((Integer) newValue, 256L),
                             field.columnType,
@@ -312,7 +313,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             convertNegativeInteger((Integer) oldValue, 65536L),
                             convertNegativeInteger((Integer) newValue, 65536L),
                             field.columnType,
@@ -323,7 +324,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Integer)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Integer)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             convertNegativeInteger((Integer) oldValue, 16777216L),
                             convertNegativeInteger((Integer) newValue, 16777216L),
                             field.columnType,
@@ -336,7 +337,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.Long)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.Long)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -351,13 +352,13 @@ class BinLogEventParser {
                     if (newValue == null) {
                         if (!field.nullable) {
                             if (oldValue == null)
-                                return new SyncOperation.SyncItem<>(field.columnName,
+                                return new SyncItem<>(field.columnName,
                                         null,
                                         "0000-00-00",
                                         field.columnType,
                                         field.isPrimary);
                             else {
-                                return new SyncOperation.SyncItem<>(field.columnName,
+                                return new SyncItem<>(field.columnName,
                                         oldValue.toString(),
                                         "0000-00-00",
                                         field.columnType,
@@ -367,7 +368,7 @@ class BinLogEventParser {
                         }
                     }
 
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -388,7 +389,7 @@ class BinLogEventParser {
                         newDate = new Timestamp(((java.util.Date) newValue).getTime());
                     }
 
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldDate,
                             newDate,
                             field.columnType,
@@ -401,7 +402,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.SqlDate)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.SqlDate)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -413,7 +414,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.TimeStamp)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.TimeStamp)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,
@@ -426,7 +427,7 @@ class BinLogEventParser {
                 if (checkTypes(oldValue, BinLogEventParser.AllowType.String)
                         &&
                         checkTypes(newValue, BinLogEventParser.AllowType.String)) {
-                    return new SyncOperation.SyncItem<>(field.columnName,
+                    return new SyncItem<>(field.columnName,
                             oldValue,
                             newValue,
                             field.columnType,

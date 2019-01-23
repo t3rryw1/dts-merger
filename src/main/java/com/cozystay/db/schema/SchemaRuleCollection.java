@@ -1,5 +1,6 @@
 package com.cozystay.db.schema;
 
+import com.cozystay.model.SyncItem;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 
@@ -21,10 +22,10 @@ public class SchemaRuleCollection {
 
     public synchronized boolean filter(SyncOperation operation) {
 
-        List<SyncOperation.SyncItem> items = operation.getSyncItems();
+        List<SyncItem> items = operation.getSyncItems();
 
         nextItem:
-        for (SyncOperation.SyncItem item : items) {
+        for (SyncItem item : items) {
             if (!item.hasChange()) {
                 continue;
             }
@@ -40,11 +41,11 @@ public class SchemaRuleCollection {
 
     public synchronized void removeBlacklisted(SyncOperation operation) {
 
-        List<SyncOperation.SyncItem> items = operation.getSyncItems();
+        List<SyncItem> items = operation.getSyncItems();
 
-        Iterator<SyncOperation.SyncItem> i = items.iterator();
+        Iterator<SyncItem> i = items.iterator();
         while (i.hasNext()) {
-            SyncOperation.SyncItem item = i.next(); // must be called before you can call i.remove()
+            SyncItem item = i.next(); // must be called before you can call i.remove()
             for (FilterRule rule : blackListRules) {
                 if (rule.match(item, operation.getTask())) {
                     i.remove();
@@ -179,7 +180,7 @@ public class SchemaRuleCollection {
         }
 
 
-        boolean match(SyncOperation.SyncItem item, SyncTask parentTask) {
+        boolean match(SyncItem item, SyncTask parentTask) {
             if (!fieldName.equals(item.fieldName)) {
                 return false;
             }

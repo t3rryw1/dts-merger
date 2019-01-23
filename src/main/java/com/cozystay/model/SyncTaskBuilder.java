@@ -1,7 +1,6 @@
 package com.cozystay.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,7 +8,7 @@ public class SyncTaskBuilder {
     private static List<String> sourceList = new LinkedList<>();
     private String source;
     private Long operationTime;
-    private List<SyncOperation.SyncItem> items;
+    private List<SyncItem> items;
     private String uuid;
     private String database;
     private String tableName;
@@ -23,7 +22,7 @@ public class SyncTaskBuilder {
         this.operationTime = operationTime;
     }
 
-    public void addItem(SyncOperation.SyncItem newItem) {
+    public void addItem(SyncItem newItem) {
         if(!this.items.contains(newItem)){
             this.items.add(newItem);
         }

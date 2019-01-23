@@ -1,10 +1,7 @@
 package com.cozystay.db.schema;
 
 import com.cozystay.SyncDaemon;
-import com.cozystay.model.SyncOperation;
-import com.cozystay.model.SyncOperationImpl;
-import com.cozystay.model.SyncTask;
-import com.cozystay.model.SyncTaskImpl;
+import com.cozystay.model.*;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
@@ -68,9 +65,9 @@ public class TestSchemaRuleCollection {
     }
 
     private SyncOperation buildOperationWithTwoItems(String dbName, String tableName, String fieldName1, String fieldName2) {
-        SyncOperation.SyncItem item1 = new SyncOperation.SyncItem<>(fieldName1, "val1", "val2", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem item2 = new SyncOperation.SyncItem<>(fieldName2, "val1", "val2",SyncOperation.SyncItem.ColumnType.CHAR,true);
-        List<SyncOperation.SyncItem> items = new ArrayList<>(Arrays.asList(item1, item2));
+        SyncItem item1 = new SyncItem<>(fieldName1, "val1", "val2", SyncItem.ColumnType.CHAR,true);
+        SyncItem item2 = new SyncItem<>(fieldName2, "val1", "val2", SyncItem.ColumnType.CHAR,true);
+        List<SyncItem> items = new ArrayList<>(Arrays.asList(item1, item2));
         SyncTask task = new SyncTaskImpl("id-123", dbName, tableName, SyncOperation.OperationType.UPDATE);
         List<String> sources = new ArrayList<>(Arrays.asList("source1", "source2"));
 
@@ -91,8 +88,8 @@ public class TestSchemaRuleCollection {
                 "calendar",
                 "user_notes",
                 "updated_at");
-        SyncOperation.SyncItem item1 = operation.getSyncItems().get(0);
-        SyncOperation.SyncItem item2 = operation.getSyncItems().get(1);
+        SyncItem item1 = operation.getSyncItems().get(0);
+        SyncItem item2 = operation.getSyncItems().get(1);
         Assert.assertTrue(rule1.match(item1,operation.getTask()));
         Assert.assertTrue(rule2.match(item2,operation.getTask()));
 

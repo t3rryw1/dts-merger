@@ -1,9 +1,6 @@
 package com.cozystay.structure;
 
-import com.cozystay.model.SyncOperation;
-import com.cozystay.model.SyncOperationImpl;
-import com.cozystay.model.SyncTask;
-import com.cozystay.model.SyncTaskImpl;
+import com.cozystay.model.*;
 import com.esotericsoftware.kryo.Kryo;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.LoggerFactory;
@@ -31,7 +28,7 @@ public class RedisTaskQueueImpl implements TaskQueue {
         kryo.register(SyncTaskImpl.class);
         kryo.register(SyncOperationImpl.class);
         kryo.register(ArrayList.class);
-        kryo.register(SyncOperation.SyncItem.class);
+        kryo.register(SyncItem.class);
         kryo.register(LinkedList.class);
         this.queueKeyName = queueKeyName;
     }

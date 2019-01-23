@@ -3,7 +3,6 @@ package com.cozystay.model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.*;
-import com.cozystay.model.SyncOperation.SyncStatus;
 
 public class SyncTaskImpl implements SyncTask {
 
@@ -200,7 +199,7 @@ public class SyncTaskImpl implements SyncTask {
 
         Map<String, Integer> fieldCount = new HashMap<>();
         for (SyncOperation operation : diffOps) {
-            for (SyncOperation.SyncItem item : operation.getSyncItems()) {
+            for (SyncItem item : operation.getSyncItems()) {
                 //exclude primary key
                 if (item.isIndex) {
                     continue;

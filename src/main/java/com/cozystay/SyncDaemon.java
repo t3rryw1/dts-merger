@@ -2,24 +2,33 @@ package com.cozystay;
 
 import com.cozystay.datasource.BinLogDataSourceImpl;
 import com.cozystay.datasource.DataSource;
-import com.cozystay.model.SyncOperation;
-import com.cozystay.model.SyncTask;
+import com.cozystay.db.DBRunner;
+import com.cozystay.db.SimpleDBRunnerImpl;
+import com.cozystay.model.*;
 import com.cozystay.structure.*;
+import javafx.util.Pair;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
+import picocli.CommandLine.Option;
 import sun.misc.Signal;
 
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
-public class SyncDaemon implements Daemon {
+@CommandLine.Command(description = "Diffs the database by a starting time, and eliminate the difference",
+        name = "data-sync", mixinStandardHelpOptions = true, version = "checksum 3.0")
+public class SyncDaemon implements Daemon, Callable<Void> {
+
 
     private static Logger logger = LoggerFactory.getLogger(SyncDaemon.class);
 
@@ -30,6 +39,8 @@ public class SyncDaemon implements Daemon {
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
     private final static List<DataSource> dataSources = new ArrayList<>();
+
+    private static String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     private static void onInitSync(DaemonContext daemonContext) throws Exception {
         logger.info("DB Sync primaryRunner launched");
@@ -305,9 +316,7 @@ public class SyncDaemon implements Daemon {
         }
 
         for (
-                DataSource source : dataSources)
-
-        {
+                DataSource source : dataSources) {
             source.init();
         }
 
@@ -384,20 +393,114 @@ public class SyncDaemon implements Daemon {
 
     }
 
+
+    @Option(names = {"-t", "--table"}, required = true, description = "table name to sync for")
+    private String tableName;
+
+    @Option(names = {"-d", "--database"}, required = true, description = "database name to sync for")
+    private String dataBase;
+
+    @Option(names = {"-s", "--since"}, description = "start sync time, using time format: yyyy-MM-dd HH:mm:ss")
+    private String since;
+
+    @Option(names = {"-u", "--until"}, description = "end sync time, using time format: yyyy-MM-dd HH:mm:ss, if not set, default to current time")
+    private String until;
+
     public static void main(String[] args) throws Exception {
 
-        onInitSync(null);
-        onStartSync();
+        if (args.length == 1 && args[0].equals("-D")) {
+            onInitSync(null);
+            onStartSync();
 
+            // Signal handler method for CTRL-C and simple kill command.
+            Signal.handle(new Signal("TERM"), signal -> onStopSync());
+            // Signal handler method for kill -INT command
+            Signal.handle(new Signal("INT"), signal -> onStopSync());
 
-        // Signal handler method for CTRL-C and simple kill command.
-        Signal.handle(new Signal("TERM"), signal -> onStopSync());
-        // Signal handler method for kill -INT command
-        Signal.handle(new Signal("INT"), signal -> onStopSync());
+            // Signal handler method for kill -HUP command
+            Signal.handle(new Signal("HUP"), signal -> onStopSync());
+            return;
+        }
 
-        // Signal handler method for kill -HUP command
-        Signal.handle(new Signal("HUP"), signal -> onStopSync());
+        CommandLine.call(new SyncDaemon(), args);
     }
 
+    private String formatTime(String timeStr, Date defaultDate) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
 
+        Date startTime;
+
+        try {
+            startTime = dateFormat.parse(since);
+
+        } catch (NullPointerException | ParseException e) {
+            startTime = defaultDate;
+        }
+        return dateFormat.format(startTime);
+    }
+
+    @Override
+    public Void call() throws Exception {
+
+
+        String startTimeStr = formatTime(since, Date.from(OffsetDateTime.of(
+                LocalDate.of(2017, Month.JANUARY, 1),
+                LocalTime.MIN,
+                ZoneOffset.UTC
+        ).toInstant()));
+
+        String untilTimeStr = formatTime(until, new Date());
+        System.out.format("[Info] Perform by-line comparison in %s.%s, starting from %s, ending at %s",
+                this.dataBase,
+                this.tableName,
+                startTimeStr,
+                untilTimeStr);
+
+        Properties prop = new Properties();
+        prop.load(SyncDaemon.class.getResourceAsStream("/db-config.properties"));
+
+        List<Pair<DBRunner,DataItemList>> diffList = new ArrayList<>();
+        String orderByKey = prop.getProperty("schema.order_by_key", "updated_at");
+        String orderByKeyType = prop.getProperty("schema.order_by_key_type", "timestamp");
+        DataItemList mergedList=null;
+        for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
+            try {
+                DBRunner source = new SimpleDBRunnerImpl(prop, "db" + i);
+
+                FetchOperation fetchOperation = new FetchOperationImpl(source, orderByKey, orderByKeyType);
+                fetchOperation
+                        .setDB(dataBase)
+                        .setTable(tableName)
+                        .addCondition(orderByKey, startTimeStr, ">")
+                        .addCondition(orderByKey, untilTimeStr, "<");
+                DataItemList list = fetchOperation.fetchList();
+                if(mergedList==null){
+                    mergedList=list;
+                }else{
+                    mergedList=mergedList.merge(list);
+                }
+
+                diffList.add(new Pair<>(source,list));
+            } catch (ParseException e) {
+                logger.info("Could not find DBRunner {}, Running with {} runners%n", i, i - 1);
+
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+        for(Pair<DBRunner,DataItemList> list:diffList){
+            DataItemList toChangeList = mergedList.diff(list.getValue());
+            DBRunner runner = list.getKey();
+            for(DataItem item:toChangeList){
+//                item.setUpdateFlag(true);
+                runner.update(dataBase,item.getUpdateSql(tableName));
+            }
+
+        }
+
+
+        return null;
+    }
 }

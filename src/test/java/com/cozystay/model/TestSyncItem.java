@@ -14,13 +14,13 @@ public class TestSyncItem {
 
     @Test
     public void testEqual() {
-        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item1 = new SyncItem<>("abc", "value1", "value2", SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item2 = new SyncItem<>("abc", "value1", "value2", SyncItem.ColumnType.CHAR,true);
         Assert.assertEquals(item1, item2);
         Assert.assertEquals(item1.hashCode(), item2.hashCode());
 
-        SyncOperation.SyncItem<Integer> item3 = new SyncOperation.SyncItem<>("abc", 123, 456, SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem<Integer> item4 = new SyncOperation.SyncItem<>("abc", 123, 456, SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncItem<Integer> item3 = new SyncItem<>("abc", 123, 456, SyncItem.ColumnType.CHAR,true);
+        SyncItem<Integer> item4 = new SyncItem<>("abc", 123, 456, SyncItem.ColumnType.CHAR,true);
         Assert.assertEquals(item3, item4);
         Assert.assertEquals(item3.hashCode(), item4.hashCode());
 
@@ -28,21 +28,21 @@ public class TestSyncItem {
 
     @Test
     public void testMergeItem() {
-        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem mergedItem = item1.mergeItem(item2);
+        SyncItem<String> item1 = new SyncItem<>("abc", "value1", "value2", SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item2 = new SyncItem<>("abc", "value1", "value2", SyncItem.ColumnType.CHAR,true);
+        SyncItem mergedItem = item1.mergeItem(item2);
         Assert.assertEquals(mergedItem.currentValue, item2.currentValue);
     }
 
     @Test
     public void testEqualNull() {
-        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", null, "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem<String> item2 = new SyncOperation.SyncItem<>("abc", null, "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item1 = new SyncItem<>("abc", null, "value2", SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item2 = new SyncItem<>("abc", null, "value2", SyncItem.ColumnType.CHAR,true);
         Assert.assertEquals(item1, item2);
         Assert.assertEquals(item1.hashCode(), item2.hashCode());
-        SyncOperation.SyncItem<String> item3 = new SyncOperation.SyncItem<>("abc", null, null, SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem<String> item4 = new SyncOperation.SyncItem<>("abc", null, null, SyncOperation.SyncItem.ColumnType.CHAR,true);
-        SyncOperation.SyncItem<String> item5 = new SyncOperation.SyncItem<>("abc", "value1", "value2", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item3 = new SyncItem<>("abc", null, null, SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item4 = new SyncItem<>("abc", null, null, SyncItem.ColumnType.CHAR,true);
+        SyncItem<String> item5 = new SyncItem<>("abc", "value1", "value2", SyncItem.ColumnType.CHAR,true);
         Assert.assertEquals(item3, item4);
         Assert.assertEquals(item3.hashCode(), item4.hashCode());
         Assert.assertEquals(item2, item5);
@@ -50,7 +50,7 @@ public class TestSyncItem {
 
     @Test
     public void testEscape(){
-        SyncOperation.SyncItem<String> item1 = new SyncOperation.SyncItem<>("abc", null, "\\n\\naa", SyncOperation.SyncItem.ColumnType.TEXT,true);
+        SyncItem<String> item1 = new SyncItem<>("abc", null, "\\n\\naa", SyncItem.ColumnType.TEXT,true);
         Assert.assertEquals(item1.currentValueToString(),"'\\\\n\\\\naa'");
 
     }
