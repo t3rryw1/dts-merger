@@ -22,8 +22,10 @@ public class SimpleDBRunnerImpl implements DBRunner {
     private final int port;
     private final String user;
     private final String password;
+    private final boolean silent;
 
-    public SimpleDBRunnerImpl(Properties prop, String prefix) throws ParseException {
+    public SimpleDBRunnerImpl(Properties prop, String prefix, boolean silent) throws ParseException {
+        this.silent = silent;
 
         String dbAddress;
         if ((dbAddress = prop.getProperty(prefix + ".dbAddress")) == null) {
@@ -53,6 +55,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
         this.port = port;
         this.user = user;
         this.password = password;
+        this.silent = false;
     }
 
     @Override
@@ -113,12 +116,9 @@ public class SimpleDBRunnerImpl implements DBRunner {
                 return null;
             }
             logger.info("executing sql {}", queryString);
-            System.out.println(queryString);
+            System.out.format("[Info] Running query %s in %s\n", queryString, address);
             ResultSet set = statement.executeQuery(queryString);
             ResultSetMetaData metaData = set.getMetaData();
-            for (int i = 1; i <= metaData.getColumnCount(); i++) {
-                System.out.println(metaData.getColumnTypeName(i));
-            }
             List<Map<String, Object>> mapList = new LinkedList<>();
             while (set.next()) {
                 Map<String, Object> objectMap = new HashMap<>();
@@ -143,7 +143,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
     }
 
     @Override
-    public boolean update(String dbName, String queryString) throws SQLException {
+    public boolean update(String dbName, String queryString) {
         Connection conn = null;
         Statement statement = null;
         if (queryString == null) {
@@ -161,7 +161,6 @@ public class SimpleDBRunnerImpl implements DBRunner {
 
             statement = conn.createStatement();
 
-
             logger.info("executing sql {}", queryString);
             statement.addBatch("SET FOREIGN_KEY_CHECKS = 0");
             statement.addBatch(queryString);
@@ -178,6 +177,11 @@ public class SimpleDBRunnerImpl implements DBRunner {
 
     }
 
+    @Override
+    public String getDBInfo() {
+        return String.format("%s:%d", this.address, this.port);
+    }
+
     private Object getData(ResultSetMetaData metaData, ResultSet set, int i) {
         try {
             int dataType = metaData.getColumnType(i);
@@ -189,11 +193,14 @@ public class SimpleDBRunnerImpl implements DBRunner {
                     return set.getInt(i);
                 case Types.FLOAT:
                 case Types.DOUBLE:
+                case Types.DECIMAL:
                     return set.getFloat(i);
                 case Types.VARCHAR:
                 case Types.NCHAR:
                 case Types.CHAR:
+                case Types.LONGVARCHAR:
                     return set.getString(i);
+//                    return StringEscapeUtils.escapeJava(set.getString(i));
                 case Types.DATE:
                     return set.getDate(i);
                 case Types.TIME:

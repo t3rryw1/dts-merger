@@ -11,6 +11,8 @@ public interface DBRunner {
 
     List<Map<String,Object>> query(String dbName, String queryString) throws SQLException;
 
-    boolean update(String dbName, String queryString) throws SQLException;
+    boolean update(String dbName, String queryString);
+
+    String getDBInfo();
 
 }

@@ -1,6 +1,7 @@
 package com.cozystay.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class DataItemListImpl extends ArrayList<DataItem> implements DataItemList {
@@ -14,6 +15,10 @@ public class DataItemListImpl extends ArrayList<DataItem> implements DataItemLis
         super(dataItems);
     }
 
+    public DataItemListImpl(DataItem[] dataItems) {
+        super(Arrays.asList(dataItems));
+    }
+
     @Override
     public DataItemList merge(DataItemList list) {
         DataItemListImpl newItems = new DataItemListImpl(this);
@@ -25,7 +30,7 @@ public class DataItemListImpl extends ArrayList<DataItem> implements DataItemLis
                 if (item1.equals(item)) {
                     continue nextItem;
                 }
-                if (item.getId().equals(item1.getId())) {
+                if (item.getIndex().equals(item1.getIndex())) {
                     item.merge(item1);
                     item.setUpdateFlag(true);
                     continue nextItem;

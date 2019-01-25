@@ -3,7 +3,7 @@ package com.cozystay.model;
 public interface DataItem {
     String getUpdateSql( String tableName);
 
-    Object getId();
+    String getIndex();
 
     void merge(DataItem item1);
 

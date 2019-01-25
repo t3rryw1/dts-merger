@@ -1,7 +1,6 @@
 package com.cozystay.model;
 
-import javafx.util.Pair;
-
+import java.sql.SQLException;
 import java.util.List;
 
 public interface FetchOperation {
@@ -9,11 +8,11 @@ public interface FetchOperation {
 
     FetchOperation setTable(String tableName);
 
-    FetchOperation setCondition(List<Pair<String, Pair<String, String>>> conditionList);
+    FetchOperation setConditions(List< String> conditionList)  throws IllegalArgumentException;
 
     FetchOperation addCondition(String key, String value, String operator);
 
-    DataItemList fetchList();
+    DataItemList fetchList() throws SQLException;
 
     DataItem fetchFirst();
 

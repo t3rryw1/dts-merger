@@ -5,6 +5,7 @@ import com.cozystay.datasource.DataSource;
 import com.cozystay.db.DBRunner;
 import com.cozystay.db.SimpleDBRunnerImpl;
 import com.cozystay.model.*;
+import com.cozystay.structure.TaskQueue;
 import com.cozystay.structure.*;
 import javafx.util.Pair;
 import org.apache.commons.daemon.Daemon;
@@ -18,15 +19,11 @@ import sun.misc.Signal;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(description = "Diffs the database by a starting time, and eliminate the difference",
-        name = "data-sync", mixinStandardHelpOptions = true, version = "checksum 3.0")
+        name = "db-merger-cli", mixinStandardHelpOptions = true, version = "checksum 3.0")
 public class SyncDaemon implements Daemon, Callable<Void> {
 
 
@@ -107,7 +104,7 @@ public class SyncDaemon implements Daemon, Callable<Void> {
                     if (!source.isRunning()) {
                         continue;
                     }
-                    for (SyncOperation operation : toProcess.getOperations()) {
+                    toProcess.getOperations().forEach(operation -> {
                         if (operation.shouldSendToSource(source.getName())) {
                             try {
                                 logger.info("proceed to executing sql ");
@@ -140,7 +137,8 @@ public class SyncDaemon implements Daemon, Callable<Void> {
                             }
 
                         }
-                    }
+                    });
+
                 }
 
                 if (toProcess.allOperationsCompleted()) {
@@ -315,10 +313,7 @@ public class SyncDaemon implements Daemon, Callable<Void> {
 
         }
 
-        for (
-                DataSource source : dataSources) {
-            source.init();
-        }
+        dataSources.forEach(DataSource::init);
 
     }
 
@@ -328,19 +323,16 @@ public class SyncDaemon implements Daemon, Callable<Void> {
         primaryRunner.start();
         secondaryRunner.start();
         doneRunner.start();
-        for (DataSource source : dataSources) {
-            source.start();
-        }
-
+        dataSources.forEach(DataSource::start);
     }
 
 
     private static void onStopSync() {
         System.out.println("stop");
-        for (DataSource source : dataSources) {
+        dataSources.forEach(source -> {
             System.out.println("stop source " + source.getName());
             source.stop();
-        }
+        });
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
@@ -390,7 +382,6 @@ public class SyncDaemon implements Daemon, Callable<Void> {
     @Override
     public void destroy() {
 
-
     }
 
 
@@ -400,15 +391,28 @@ public class SyncDaemon implements Daemon, Callable<Void> {
     @Option(names = {"-d", "--database"}, required = true, description = "database name to sync for")
     private String dataBase;
 
-    @Option(names = {"-s", "--since"}, description = "start sync time, using time format: yyyy-MM-dd HH:mm:ss")
-    private String since;
+    @Option(names = {"-o", "--order"}, description = "specify the order key")
+    private String orderBy;
 
-    @Option(names = {"-u", "--until"}, description = "end sync time, using time format: yyyy-MM-dd HH:mm:ss, if not set, default to current time")
-    private String until;
+    @Option(names = {"-c", "--condition"}, arity = "0..*", description = "specify filter conditions, use format as 'updated_at|>=|2016-01-01 12:00:00'")
+    private String[] conditions = {};
+
+    @Option(names = {"-y"}, description = "proceed without prompt")
+    private boolean noPrompt;
+
+    @Option(names = {"-s", "--silent"}, description = "do not print SQL detail")
+    private boolean silent;
+
+    @Option(names = {"-e", "--execute"}, description = "Actually modify data, if this flag is turned off then only print sql without executing")
+    private boolean execute;
+
+    @Option(names = {"-k", "--keys"}, arity = "0..*", description = "table's index keys")
+    private String[] keys = {};
+
 
     public static void main(String[] args) throws Exception {
 
-        if (args.length == 1 && args[0].equals("-D")) {
+        if (args.length == 1 && args[0].equals("--daemon")) {
             onInitSync(null);
             onStartSync();
 
@@ -425,78 +429,119 @@ public class SyncDaemon implements Daemon, Callable<Void> {
         CommandLine.call(new SyncDaemon(), args);
     }
 
-    private String formatTime(String timeStr, Date defaultDate) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+    private void enterToContinue() {
+        Scanner s = new Scanner(System.in);
 
-        Date startTime;
+        System.out.println("Press Enter to continue...");
 
-        try {
-            startTime = dateFormat.parse(since);
-
-        } catch (NullPointerException | ParseException e) {
-            startTime = defaultDate;
-        }
-        return dateFormat.format(startTime);
+        s.nextLine();
     }
 
     @Override
     public Void call() throws Exception {
 
 
-        String startTimeStr = formatTime(since, Date.from(OffsetDateTime.of(
-                LocalDate.of(2017, Month.JANUARY, 1),
-                LocalTime.MIN,
-                ZoneOffset.UTC
-        ).toInstant()));
-
-        String untilTimeStr = formatTime(until, new Date());
-        System.out.format("[Info] Perform by-line comparison in %s.%s, starting from %s, ending at %s",
-                this.dataBase,
-                this.tableName,
-                startTimeStr,
-                untilTimeStr);
-
         Properties prop = new Properties();
         prop.load(SyncDaemon.class.getResourceAsStream("/db-config.properties"));
 
-        List<Pair<DBRunner,DataItemList>> diffList = new ArrayList<>();
-        String orderByKey = prop.getProperty("schema.order_by_key", "updated_at");
-        String orderByKeyType = prop.getProperty("schema.order_by_key_type", "timestamp");
-        DataItemList mergedList=null;
-        for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
-            try {
-                DBRunner source = new SimpleDBRunnerImpl(prop, "db" + i);
+        List<Pair<DBRunner, DataItemList>> diffList = new ArrayList<>();
+        String orderByKey = orderBy != null ? orderBy : "updated_at";
+//        String orderByKeyType = prop.getProperty("schema.order_by_key_type", "timestamp");
+        List<String> conditionList = Arrays.asList(conditions);
+        List<String> keyList = Arrays.asList(keys);
+        if (keyList.size() == 0) {
+            keyList.add("id");
+        }
+        if (conditionList.size() > 0) {
+            System.out.format("[Info] Will Perform by-line comparison in table %s.%s, order by %s field, indexed by %s, filters:",
+                    this.dataBase,
+                    this.tableName,
+                    orderByKey,
+                    keyList);
+            System.out.println(conditionList.toString());
 
-                FetchOperation fetchOperation = new FetchOperationImpl(source, orderByKey, orderByKeyType);
+        } else {
+            System.out.format("[Info] Will Perform by-line comparison in table %s.%s, order by %s field, indexed by %s, no filter\n",
+                    this.dataBase,
+                    this.tableName,
+                    orderByKey,
+                    keyList);
+        }
+        if (!noPrompt) {
+            enterToContinue();
+        }
+
+        DataItemList mergedList = null;
+        for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
+            DBRunner source = null;
+            try {
+                source = new SimpleDBRunnerImpl(prop, "db" + i, silent);
+
+                FetchOperation fetchOperation = new FetchOperationImpl(source, orderByKey, silent, keyList);
                 fetchOperation
                         .setDB(dataBase)
                         .setTable(tableName)
-                        .addCondition(orderByKey, startTimeStr, ">")
-                        .addCondition(orderByKey, untilTimeStr, "<");
+                        .setConditions(conditionList);
                 DataItemList list = fetchOperation.fetchList();
-                if(mergedList==null){
-                    mergedList=list;
-                }else{
-                    mergedList=mergedList.merge(list);
+                if (mergedList == null) {
+                    mergedList = list;
+                } else {
+                    mergedList = mergedList.merge(list);
                 }
 
-                diffList.add(new Pair<>(source,list));
+                diffList.add(new Pair<>(source, list));
             } catch (ParseException e) {
                 logger.info("Could not find DBRunner {}, Running with {} runners%n", i, i - 1);
-
                 break;
+            } catch (IllegalArgumentException e) {
+                System.err.format("[Error] Error parsing conditions: %s\n",
+                        e.getMessage());
+                return null;
             } catch (Exception e) {
+                System.err.format("[Error] Error while performing query in datasource %s\n",
+                        Objects.requireNonNull(source).getDBInfo());
                 e.printStackTrace();
+                return null;
             }
 
         }
-        for(Pair<DBRunner,DataItemList> list:diffList){
+        if (!noPrompt) {
+            enterToContinue();
+        }
+        System.out.format("[Info] Diff merged data with data in each data source\n");
+
+        for (Pair<DBRunner, DataItemList> list : diffList) {
+            List<String> updatedList = new LinkedList<>();
             DataItemList toChangeList = mergedList.diff(list.getValue());
             DBRunner runner = list.getKey();
-            for(DataItem item:toChangeList){
-//                item.setUpdateFlag(true);
-                runner.update(dataBase,item.getUpdateSql(tableName));
+            if (toChangeList.size() == 0) {
+                System.out.format("[Info] No diff found in data source %s\n", runner.getDBInfo());
+                continue;
             }
+            System.out.format("[Info] Found %d entries to update/insert for data source %s\n",
+                    toChangeList.size(),
+                    runner.getDBInfo());
+            toChangeList.forEach(item -> {
+                String updateSql = item.getUpdateSql(tableName);
+                if (!silent) {
+                    System.out.format("[Info] will Execute SQL >>>\n %s  \n", updateSql);
+                }
+                if (!noPrompt) {
+                    enterToContinue();
+                }
+                if (execute) {
+
+                    if (!runner.update(dataBase, updateSql)) {
+                        if(!runner.update(dataBase, updateSql.replace("INSERT", "REPLACE"))){
+                            System.err.format("[Error] Execute SQL >>>\n %s  Failed\n", updateSql);
+
+                        }
+                    }
+                }
+                updatedList.add(item.getIndex());
+            });
+
+            System.out.format("[Info] Updated id in data source %s are %s\n\n", runner.getDBInfo(), updatedList.toString());
 
         }
 
