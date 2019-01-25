@@ -448,7 +448,7 @@ public class SyncDaemon implements Daemon, Callable<Void> {
         String orderByKey = orderBy != null ? orderBy : "updated_at";
 //        String orderByKeyType = prop.getProperty("schema.order_by_key_type", "timestamp");
         List<String> conditionList = Arrays.asList(conditions);
-        List<String> keyList = Arrays.asList(keys);
+        List<String> keyList = new ArrayList<>(Arrays.asList(keys));
         if (keyList.size() == 0) {
             keyList.add("id");
         }
