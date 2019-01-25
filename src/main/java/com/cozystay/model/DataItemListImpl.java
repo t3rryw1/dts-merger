@@ -21,26 +21,29 @@ public class DataItemListImpl extends ArrayList<DataItem> implements DataItemLis
 
     @Override
     public DataItemList merge(DataItemList list) {
-        DataItemListImpl newItems = new DataItemListImpl(this);
+        DataItemListImpl mergedItems = new DataItemListImpl(this);
+        mergedItems.clear();
         List<DataItem> toAddItems = new ArrayList<>();
         nextItem:
         for (DataItem item1 : list) {
 
-            for (DataItem item : newItems) {
+            for (DataItem item : this) {
                 if (item1.equals(item)) {
+                    mergedItems.add(item);
                     continue nextItem;
                 }
                 if (item.getIndex().equals(item1.getIndex())) {
-                    item.merge(item1);
-                    item.setUpdateFlag(true);
+                    DataItem merged = item.merge(item1);
+                    merged.setUpdateFlag(true);
+                    mergedItems.add(merged);
                     continue nextItem;
                 }
             }
             toAddItems.add(item1);
         }
-        newItems.addAll(toAddItems);
+        mergedItems.addAll(toAddItems);
 
-        return newItems;
+        return mergedItems;
     }
 
     @Override

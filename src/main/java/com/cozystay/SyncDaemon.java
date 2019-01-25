@@ -22,8 +22,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-@CommandLine.Command(description = "Diffs the database by a starting time, and eliminate the difference",
-        name = "db-merger-cli", mixinStandardHelpOptions = true, version = "checksum 3.0")
+@CommandLine.Command(description = "Diff a database table, then detect, display and eliminate the difference",
+        name = "db-merger-cli", mixinStandardHelpOptions = true, version = "merger 3.0")
 public class SyncDaemon implements Daemon, Callable<Void> {
 
 
@@ -37,7 +37,6 @@ public class SyncDaemon implements Daemon, Callable<Void> {
     private static int MAX_DATABASE_SIZE = 10;
     private final static List<DataSource> dataSources = new ArrayList<>();
 
-    private static String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     private static void onInitSync(DaemonContext daemonContext) throws Exception {
         logger.info("DB Sync primaryRunner launched");
@@ -394,7 +393,8 @@ public class SyncDaemon implements Daemon, Callable<Void> {
     @Option(names = {"-o", "--order"}, description = "specify the order key")
     private String orderBy;
 
-    @Option(names = {"-c", "--condition"}, arity = "0..*", description = "specify filter conditions, use format as 'updated_at|>=|2016-01-01 12:00:00'")
+    @Option(names = {"-c", "--condition"}, arity = "0..*", description = "specify filter conditions, use format as 'updated_at|>=|2016-01-01 12:00:00'. " +
+            "When pass in time params, please follow the format: yyyy-mm-dd hh:MM:ss")
     private String[] conditions = {};
 
     @Option(names = {"-y"}, description = "proceed without prompt")
@@ -406,7 +406,7 @@ public class SyncDaemon implements Daemon, Callable<Void> {
     @Option(names = {"-e", "--execute"}, description = "Actually modify data, if this flag is turned off then only print sql without executing")
     private boolean execute;
 
-    @Option(names = {"-k", "--keys"}, arity = "0..*", description = "table's index keys")
+    @Option(names = {"-k", "--keys"}, arity = "0..*", description = "table's index keys, default to id")
     private String[] keys = {};
 
 
@@ -437,6 +437,16 @@ public class SyncDaemon implements Daemon, Callable<Void> {
         s.nextLine();
     }
 
+    private String readCommand(String display) {
+        Scanner s = new Scanner(System.in);
+
+        System.out.println(display);
+
+        String input = s.nextLine();
+        return input.equals("") ? null : input;
+    }
+
+
     @Override
     public Void call() throws Exception {
 
@@ -446,7 +456,6 @@ public class SyncDaemon implements Daemon, Callable<Void> {
 
         List<Pair<DBRunner, DataItemList>> diffList = new ArrayList<>();
         String orderByKey = orderBy != null ? orderBy : "updated_at";
-//        String orderByKeyType = prop.getProperty("schema.order_by_key_type", "timestamp");
         List<String> conditionList = Arrays.asList(conditions);
         List<String> keyList = new ArrayList<>(Arrays.asList(keys));
         if (keyList.size() == 0) {
@@ -484,7 +493,7 @@ public class SyncDaemon implements Daemon, Callable<Void> {
                         .setConditions(conditionList);
                 DataItemList list = fetchOperation.fetchList();
                 if (mergedList == null) {
-                    mergedList = list;
+                    mergedList = new DataItemListImpl(list.toArray(new DataItem[0]));
                 } else {
                     mergedList = mergedList.merge(list);
                 }
@@ -508,9 +517,17 @@ public class SyncDaemon implements Daemon, Callable<Void> {
         if (!noPrompt) {
             enterToContinue();
         }
+
+        if (!silent) {
+            System.out.format("[Info] Merged data source: \n");
+            Objects.requireNonNull(mergedList).forEach(dataItem ->
+                    System.out.println(dataItem.toString())
+            );
+        }
         System.out.format("[Info] Diff merged data with data in each data source\n");
 
         for (Pair<DBRunner, DataItemList> list : diffList) {
+
             List<String> updatedList = new LinkedList<>();
             DataItemList toChangeList = mergedList.diff(list.getValue());
             DBRunner runner = list.getKey();
@@ -527,14 +544,18 @@ public class SyncDaemon implements Daemon, Callable<Void> {
                     System.out.format("[Info] will Execute SQL >>>\n %s  \n", updateSql);
                 }
                 if (!noPrompt) {
-                    enterToContinue();
+                    String newCommand;
+                    if ((newCommand = readCommand("Insert your modified command or Press Enter to use origin command ...")) != null) {
+                        updateSql = newCommand;
+                    }
                 }
                 if (execute) {
 
-                    if (!runner.update(dataBase, updateSql)) {
-                        if(!runner.update(dataBase, updateSql.replace("INSERT", "REPLACE"))){
-                            System.err.format("[Error] Execute SQL >>>\n %s  Failed\n", updateSql);
-
+                    while (!runner.update(dataBase, updateSql)) {
+                        System.err.format("[Error] Execute SQL >>>\n %s  Failed\n", updateSql);
+                        updateSql = readCommand("Modify your command and re-enter, or ENTER to to skip this command ");
+                        if (updateSql == null) {
+                            break;
                         }
                     }
                 }

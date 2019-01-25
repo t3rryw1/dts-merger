@@ -5,7 +5,7 @@ public interface DataItem {
 
     String getIndex();
 
-    void merge(DataItem item1);
+    DataItem merge(DataItem item1);
 
     void setUpdateFlag(boolean b);
 }

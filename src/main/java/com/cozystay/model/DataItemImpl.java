@@ -10,6 +10,7 @@ import com.healthmarketscience.sqlbuilder.dbspec.basic.DbTable;
 import javafx.util.Pair;
 
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,17 @@ public class DataItemImpl implements DataItem {
         this.orderValue = objectMap.get(orderKey);
     }
 
+    DataItemImpl(DataItemImpl item) {
+        this.objectMap = (HashMap) item.objectMap.clone();
+
+        keyValueList = new ArrayList<>(item.keyValueList.size());
+        keyValueList.addAll(item.keyValueList);
+        this.orderKey = item.orderKey;
+        this.conflict = item.conflict;
+        this.orderValue = objectMap.get(orderKey);
+
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof DataItemImpl)) {
@@ -39,6 +51,11 @@ public class DataItemImpl implements DataItem {
         }
         DataItemImpl anotherObj = (DataItemImpl) obj;
         return objectMap.equals(anotherObj.objectMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return objectMap.hashCode();
     }
 
     @Override
@@ -51,12 +68,17 @@ public class DataItemImpl implements DataItem {
             keyValueList.forEach((keyValue) -> {
                 DbColumn columnName;
                 if (keyValue.getValue() instanceof String) {
-                    columnName = customerTable.addColumn(keyValue.getKey(), Types.VARCHAR, 50);
+                    columnName = customerTable.addColumn('`'+keyValue.getKey()+'`', Types.VARCHAR, 50);
                 } else {
-                    columnName = customerTable.addColumn(keyValue.getKey(), Types.INTEGER, 10);
+                    columnName = customerTable.addColumn('`'+keyValue.getKey()+'`', Types.INTEGER, 10);
 
                 }
-                query.addCondition(BinaryCondition.equalTo(columnName, keyValue.getValue()));
+                if (keyValue.getValue() instanceof String) {
+                    query.addCondition(BinaryCondition.equalTo(columnName,
+                            mysqlRealScapeString(keyValue.getValue().toString())));
+                } else {
+                    query.addCondition(BinaryCondition.equalTo(columnName, keyValue.getValue()));
+                }
             });
 
             objectMap.forEach((key, value) -> {
@@ -113,15 +135,15 @@ public class DataItemImpl implements DataItem {
     }
 
     @Override
-    public void merge(DataItem item2) {
-        if (!(item2 instanceof DataItemImpl)) {
-            return;
+    public DataItem merge(DataItem anotherItem) {
+        if (!(anotherItem instanceof DataItemImpl)) {
+            return null;
         }
-        DataItemImpl item1 = (DataItemImpl) item2;
+        DataItemImpl item1 = (DataItemImpl) anotherItem;
         if (this.orderValue.toString().compareTo(item1.orderValue.toString()) > 0) {
-            return;
+            return new DataItemImpl(this);
         } else {
-            this.objectMap = (HashMap<String, Object>) item1.objectMap.clone();
+            return new DataItemImpl(item1);
         }
 
     }
@@ -133,8 +155,9 @@ public class DataItemImpl implements DataItem {
 
     @Override
     public String toString() {
-        return String.format("index:%s,\t%s:%s\tdata:%s,",
+        return String.format("index:%s, \tconflict:%b \t%s:%s\tdata:%s,",
                 getIndex(),
+                this.conflict,
                 this.orderKey,
                 this.orderValue.toString(),
                 this.objectMap.toString());
