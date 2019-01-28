@@ -64,7 +64,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
         Statement statement = null;
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC",
                             this.address,
                             this.port,
                             operation.getTask().getDatabase()),
@@ -103,7 +103,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
         Statement statement = null;
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC",
                             this.address,
                             this.port,
                             dbName),
@@ -152,7 +152,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
 
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC",
                             this.address,
                             this.port,
                             dbName),
@@ -165,7 +165,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
             statement.addBatch("SET FOREIGN_KEY_CHECKS = 0");
             statement.addBatch(queryString);
             statement.addBatch("SET FOREIGN_KEY_CHECKS = 1");
-            return statement.executeBatch()[1] == 0;
+            return statement.executeBatch()[1] != 0;
 
 
         } catch (SQLException e) {
