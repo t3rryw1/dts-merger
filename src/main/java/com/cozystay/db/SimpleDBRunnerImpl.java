@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.*;
 import java.text.ParseException;
 import java.util.*;
@@ -103,7 +105,12 @@ public class SimpleDBRunnerImpl implements DBRunner {
         Statement statement = null;
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=Asia/Shanghai",
+                    String.format("jdbc:mysql://%s:%d/%s" +
+                                    "?verifyServerCertificate=false" +
+                                    "&useSSL=true" +
+                                    "&autoReconnect=true" +
+                                    "&serverTimezone=Asia/Shanghai" +
+                                    "&zeroDateTimeBehavior=convertToNull",
                             this.address,
                             this.port,
                             dbName),
@@ -152,7 +159,12 @@ public class SimpleDBRunnerImpl implements DBRunner {
 
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC",
+                    String.format("jdbc:mysql://%s:%d/%s" +
+                                    "?verifyServerCertificate=false" +
+                                    "&useSSL=true" +
+                                    "&autoReconnect=true" +
+                                    "&serverTimezone=Asia/Shanghai" +
+                                    "&zeroDateTimeBehavior=convertToNull",
                             this.address,
                             this.port,
                             dbName),
@@ -190,30 +202,66 @@ public class SimpleDBRunnerImpl implements DBRunner {
                 case Types.INTEGER:
                 case Types.SMALLINT:
                 case Types.TINYINT:
-                    return set.getInt(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.ofNullable(set.getBigDecimal(i))
+                                .map(BigDecimal::longValue).orElse(null);
+                    } else {
+                        return Optional.ofNullable(set.getBigDecimal(i))
+                                .map(BigDecimal::longValue).orElse(0L);
+                    }
                 case Types.FLOAT:
                 case Types.DOUBLE:
                 case Types.DECIMAL:
-                    return set.getFloat(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.ofNullable(set.getBigDecimal(i))
+                                .map(BigDecimal::floatValue).orElse(null);
+                    } else {
+                        return Optional.ofNullable(set.getBigDecimal(i))
+                                .map(BigDecimal::floatValue).orElse((float) 0);
+                    }
                 case Types.VARCHAR:
                 case Types.NCHAR:
                 case Types.CHAR:
                 case Types.LONGVARCHAR:
-                    return set.getString(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.ofNullable(set.getString(i)).orElse(null);
+                    } else {
+                        return Optional.ofNullable(set.getString(i)).orElse("");
+                    }
 //                    return StringEscapeUtils.escapeJava(set.getString(i));
                 case Types.DATE:
-                    return set.getDate(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.ofNullable(set.getDate(i)).orElse(null);
+                    } else {
+                        return Optional.ofNullable(set.getDate(i)).orElse(new Date(0));
+                    }
                 case Types.TIME:
-                    return set.getTime(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.ofNullable(set.getTime(i)).orElse(null);
+                    } else {
+                        return Optional.ofNullable(set.getTime(i)).orElse(new Time(0));
+                    }
                 case Types.TIMESTAMP:
-                    return set.getTimestamp(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.ofNullable(set.getTimestamp(i)).orElse(null);
+                    } else {
+                        return Optional.ofNullable(set.getTimestamp(i)).orElse(new Timestamp(0));
+                    }
                 case Types.BOOLEAN:
                 case Types.BIT:
-                    return set.getBoolean(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.of(set.getBoolean(i)).orElse(null);
+                    } else {
+                        return Optional.of(set.getBoolean(i)).orElse(false);
+                    }
                 case Types.ARRAY:
                 case Types.BLOB:
                 case Types.BINARY:
-                    return set.getBytes(i);
+                    if (metaData.isNullable(i) == ResultSetMetaData.columnNullable) {
+                        return Optional.of(set.getBytes(i)).orElse(null);
+                    } else {
+                        return Optional.of(set.getBytes(i)).orElse(new byte[0]);
+                    }
                 default:
                     return null;
             }

@@ -9,6 +9,7 @@ import com.healthmarketscience.sqlbuilder.dbspec.basic.DbSpec;
 import com.healthmarketscience.sqlbuilder.dbspec.basic.DbTable;
 import javafx.util.Pair;
 
+import java.sql.Date;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,9 +69,9 @@ public class DataItemImpl implements DataItem {
             keyValueList.forEach((keyValue) -> {
                 DbColumn columnName;
                 if (keyValue.getValue() instanceof String) {
-                    columnName = customerTable.addColumn('`'+keyValue.getKey()+'`', Types.VARCHAR, 50);
+                    columnName = customerTable.addColumn('`' + keyValue.getKey() + '`', Types.VARCHAR, 50);
                 } else {
-                    columnName = customerTable.addColumn('`'+keyValue.getKey()+'`', Types.INTEGER, 10);
+                    columnName = customerTable.addColumn('`' + keyValue.getKey() + '`', Types.INTEGER, 10);
 
                 }
                 if (keyValue.getValue() instanceof String) {
@@ -86,8 +87,13 @@ public class DataItemImpl implements DataItem {
                             query.addCustomSetClause(String.format("`%s`", key),
                                     mysqlRealScapeString(value.toString()));
                         } else {
-                            query.addCustomSetClause(String.format("`%s`", key),
-                                    value);
+                            if (value instanceof Date && ((Date) value).compareTo(new Date(0)) == 0) {
+                                query.addCustomSetClause(String.format("`%s`", key),
+                                        "0000-00-00");
+                            } else {
+                                query.addCustomSetClause(String.format("`%s`", key),
+                                        value);
+                            }
                         }
                     }
             );
@@ -101,8 +107,13 @@ public class DataItemImpl implements DataItem {
                     query.addCustomColumn(String.format("`%s`", key),
                             mysqlRealScapeString(value.toString()));
                 } else {
-                    query.addCustomColumn(String.format("`%s`", key),
-                            value);
+                    if (value instanceof Date && ((Date) value).compareTo(new Date(0)) == 0) {
+                        query.addCustomColumn(String.format("`%s`", key),
+                                "0000-00-00");
+                    } else {
+                        query.addCustomColumn(String.format("`%s`", key),
+                                value);
+                    }
                 }
             });
             return query.toString();
@@ -112,18 +123,19 @@ public class DataItemImpl implements DataItem {
     }
 
     private String mysqlRealScapeString(String str) {
-        String data = null;
-        if (str != null && str.length() > 0) {
-            str = str.replace("\\", "\\\\");
-            str = str.replace("'", "\\'");
-            str = str.replace("\0", "\\0");
-            str = str.replace("\n", "\\n");
-            str = str.replace("\r", "\\r");
-            str = str.replace("\"", "\\\"");
-            str = str.replace("\\x1a", "\\Z");
-            data = str;
+        if (str == null)
+            return null;
+        if (str.length() == 0) {
+            return "";
         }
-        return data;
+        str = str.replace("\\", "\\\\");
+        str = str.replace("'", "\\'");
+        str = str.replace("\0", "\\0");
+        str = str.replace("\n", "\\n");
+        str = str.replace("\r", "\\r");
+        str = str.replace("\"", "\\\"");
+        str = str.replace("\\x1a", "\\Z");
+        return str;
     }
 
     @Override
