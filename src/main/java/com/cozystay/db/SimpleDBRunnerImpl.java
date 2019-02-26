@@ -64,7 +64,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
         Statement statement = null;
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC+8",
                             this.address,
                             this.port,
                             operation.getTask().getDatabase()),
@@ -103,7 +103,7 @@ public class SimpleDBRunnerImpl implements DBRunner {
         Statement statement = null;
         try {
             conn = getConnection(
-                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=UTC",
+                    String.format("jdbc:mysql://%s:%d/%s?verifyServerCertificate=false&useSSL=true&autoReconnect=true&serverTimezone=Asia/Shanghai",
                             this.address,
                             this.port,
                             dbName),
