@@ -71,7 +71,7 @@ public class SchemaLoader {
                             dbName,
                             tableName);
 
-                    try (ResultSet columnResultSet = metaData.getColumns(null,
+                    try (ResultSet columnResultSet = metaData.getColumns(dbName,
                             "public",
                             tableName,
                             "%")) {
