@@ -1,9 +1,10 @@
 package com.cozystay.datasource;
 
-import com.cozystay.db.SimpleDBWriterImpl;
-import com.cozystay.db.Writer;
+import com.cozystay.db.SimpleDBRunnerImpl;
+import com.cozystay.db.DBRunner;
 import com.cozystay.db.schema.SchemaLoader;
 import com.cozystay.db.schema.SchemaRuleCollection;
+import com.cozystay.model.SyncItem;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
@@ -28,7 +29,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     private static Logger logger = LoggerFactory.getLogger(BinLogDataSourceImpl.class);
 
     private final SchemaRuleCollection schemaRuleCollection;
-    private final Writer writer;
+    private final DBRunner DBRunner;
     private final BinaryLogClient client;
 
     private String subscribeInstanceID;
@@ -88,7 +89,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                 dbAddress,
                 dbPort,
                 subscribeInstanceID);
-        writer = new SimpleDBWriterImpl(dbAddress, dbPort, dbUser, dbPassword);
+        DBRunner = new SimpleDBRunnerImpl(dbAddress, dbPort, dbUser, dbPassword);
 
         client = new BinaryLogClient(dbAddress, dbPort, dbUser, dbPassword);
         SyncTaskBuilder.addSource(subscribeInstanceID);
@@ -112,8 +113,8 @@ public abstract class BinLogDataSourceImpl implements DataSource {
     }
 
     @Override
-    public boolean writeDB(SyncOperation operation) throws SQLException {
-        return this.writer.write(operation);
+    public int writeDB(SyncOperation operation) throws SQLException {
+        return DBRunner.write(operation);
     }
 
     @Override
@@ -152,7 +153,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
                             }
                             schemaRuleCollection.removeBlacklisted(task.getOperations().get(0));
 
-                            for (SyncOperation.SyncItem item : task.getOperations().get(0).getSyncItems()) {
+                            for (SyncItem item : task.getOperations().get(0).getSyncItems()) {
                                 //if any syncitem has any change
                                 if (item.hasChange()) {
                                     consumeData(task);
@@ -195,6 +196,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             @Override
             public void onCommunicationFailure(BinaryLogClient binaryLogClient, Exception e) {
                 //binlog location logic
+                logger.error(e.getMessage());
                 saveBinlog(binaryLogClient, "onCommunicationFailure");
 
             }
@@ -202,6 +204,7 @@ public abstract class BinLogDataSourceImpl implements DataSource {
             @Override
             public void onEventDeserializationFailure(BinaryLogClient binaryLogClient, Exception e) {
                 //binlog location logic
+                logger.error(e.getMessage());
                 saveBinlog(binaryLogClient, "onEventDeserializationFailure");
 
             }

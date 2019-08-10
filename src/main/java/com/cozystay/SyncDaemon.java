@@ -2,24 +2,30 @@ package com.cozystay;
 
 import com.cozystay.datasource.BinLogDataSourceImpl;
 import com.cozystay.datasource.DataSource;
-import com.cozystay.model.SyncOperation;
-import com.cozystay.model.SyncTask;
+import com.cozystay.db.DBRunner;
+import com.cozystay.db.SimpleDBRunnerImpl;
+import com.cozystay.model.*;
+import com.cozystay.structure.TaskQueue;
 import com.cozystay.structure.*;
+import javafx.util.Pair;
 import org.apache.commons.daemon.Daemon;
 import org.apache.commons.daemon.DaemonContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
+import picocli.CommandLine.Option;
 import sun.misc.Signal;
 
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.Callable;
 
-public class SyncDaemon implements Daemon {
+@CommandLine.Command(description = "Diff a database table, then detect, display and eliminate the difference",
+        name = "db-merger-cli", mixinStandardHelpOptions = true, version = "merger 3.0")
+public class SyncDaemon implements Daemon, Callable<Void> {
+
 
     private static Logger logger = LoggerFactory.getLogger(SyncDaemon.class);
 
@@ -30,6 +36,7 @@ public class SyncDaemon implements Daemon {
     @SuppressWarnings("FieldCanBeLocal")
     private static int MAX_DATABASE_SIZE = 10;
     private final static List<DataSource> dataSources = new ArrayList<>();
+
 
     private static void onInitSync(DaemonContext daemonContext) throws Exception {
         logger.info("DB Sync primaryRunner launched");
@@ -96,21 +103,29 @@ public class SyncDaemon implements Daemon {
                     if (!source.isRunning()) {
                         continue;
                     }
-                    for (SyncOperation operation : toProcess.getOperations()) {
+                    toProcess.getOperations().forEach(operation -> {
                         if (operation.shouldSendToSource(source.getName())) {
                             try {
                                 logger.info("proceed to executing sql ");
-
-                                if (source.writeDB(operation)) {
+                                int result = source.writeDB(operation);
+                                if (result > 0) {
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.SEND);
                                     logger.info("write operation {} to source {} succeed.",
                                             operation.toString(),
                                             source.getName());
-                                } else {
+                                } else if (result == 0) {
                                     operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
                                     logger.error("wrote operation {} to source {} but return no result. ",
                                             operation.toString(),
                                             source.getName());
+                                } else {
+                                    //if connection error, retry this query.
+                                    synchronized (primaryPool) {
+                                        logger.error(" add operation {} back and retry later.",
+                                                operation.toString());
+                                        primaryPool.add(toProcess);
+                                        return;
+                                    }
                                 }
                             } catch (SQLException e) {
                                 operation.updateStatus(source.getName(), SyncOperation.SyncStatus.COMPLETED);
@@ -121,7 +136,8 @@ public class SyncDaemon implements Daemon {
                             }
 
                         }
-                    }
+                    });
+
                 }
 
                 if (toProcess.allOperationsCompleted()) {
@@ -296,12 +312,7 @@ public class SyncDaemon implements Daemon {
 
         }
 
-        for (
-                DataSource source : dataSources)
-
-        {
-            source.init();
-        }
+        dataSources.forEach(DataSource::init);
 
     }
 
@@ -311,19 +322,16 @@ public class SyncDaemon implements Daemon {
         primaryRunner.start();
         secondaryRunner.start();
         doneRunner.start();
-        for (DataSource source : dataSources) {
-            source.start();
-        }
-
+        dataSources.forEach(DataSource::start);
     }
 
 
     private static void onStopSync() {
         System.out.println("stop");
-        for (DataSource source : dataSources) {
+        dataSources.forEach(source -> {
             System.out.println("stop source " + source.getName());
             source.stop();
-        }
+        });
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
@@ -373,23 +381,192 @@ public class SyncDaemon implements Daemon {
     @Override
     public void destroy() {
 
-
     }
+
+
+    @Option(names = {"-t", "--table"}, required = true, description = "table name to sync for")
+    private String tableName;
+
+    @Option(names = {"-d", "--database"}, required = true, description = "database name to sync for")
+    private String dataBase;
+
+    @Option(names = {"-o", "--order"}, description = "specify the order key")
+    private String orderBy;
+
+    @Option(names = {"-c", "--condition"}, arity = "0..*", description = "specify filter conditions, use format as 'updated_at|>=|2016-01-01 12:00:00'. " +
+            "When pass in time params, please follow the format: yyyy-mm-dd hh:MM:ss")
+    private String[] conditions = {};
+
+    @Option(names = {"-y"}, description = "proceed without prompt")
+    private boolean noPrompt;
+
+    @Option(names = {"-s", "--silent"}, description = "do not print SQL detail")
+    private boolean silent;
+
+    @Option(names = {"-e", "--execute"}, description = "Actually modify data, if this flag is turned off then only print sql without executing")
+    private boolean execute;
+
+    @Option(names = {"-k", "--keys"}, arity = "0..*", description = "table's index keys, default to id")
+    private String[] keys = {};
+
 
     public static void main(String[] args) throws Exception {
 
-        onInitSync(null);
-        onStartSync();
+        if (args.length == 1 && args[0].equals("--daemon")) {
+            onInitSync(null);
+            onStartSync();
 
+            // Signal handler method for CTRL-C and simple kill command.
+            Signal.handle(new Signal("TERM"), signal -> onStopSync());
+            // Signal handler method for kill -INT command
+            Signal.handle(new Signal("INT"), signal -> onStopSync());
 
-        // Signal handler method for CTRL-C and simple kill command.
-        Signal.handle(new Signal("TERM"), signal -> onStopSync());
-        // Signal handler method for kill -INT command
-        Signal.handle(new Signal("INT"), signal -> onStopSync());
+            // Signal handler method for kill -HUP command
+            Signal.handle(new Signal("HUP"), signal -> onStopSync());
+            return;
+        }
 
-        // Signal handler method for kill -HUP command
-        Signal.handle(new Signal("HUP"), signal -> onStopSync());
+        CommandLine.call(new SyncDaemon(), args);
+    }
+
+    private void enterToContinue() {
+        Scanner s = new Scanner(System.in);
+
+        System.out.println("Press Enter to continue...");
+
+        s.nextLine();
+    }
+
+    private String readCommand(String display) {
+        Scanner s = new Scanner(System.in);
+
+        System.out.println(display);
+
+        String input = s.nextLine();
+        return input.equals("") ? null : input;
     }
 
 
+    @Override
+    public Void call() throws Exception {
+
+
+        Properties prop = new Properties();
+        prop.load(SyncDaemon.class.getResourceAsStream("/db-config.properties"));
+
+        List<Pair<DBRunner, DataItemList>> diffList = new ArrayList<>();
+        String orderByKey = orderBy != null ? orderBy : "updated_at";
+        List<String> conditionList = Arrays.asList(conditions);
+        List<String> keyList = new ArrayList<>(Arrays.asList(keys));
+        if (keyList.size() == 0) {
+            keyList.add("id");
+        }
+        if (conditionList.size() > 0) {
+            System.out.format("[Info] Will Perform by-line comparison in table %s.%s, order by %s field, indexed by %s, filters:",
+                    this.dataBase,
+                    this.tableName,
+                    orderByKey,
+                    keyList);
+            System.out.println(conditionList.toString());
+
+        } else {
+            System.out.format("[Info] Will Perform by-line comparison in table %s.%s, order by %s field, indexed by %s, no filter\n",
+                    this.dataBase,
+                    this.tableName,
+                    orderByKey,
+                    keyList);
+        }
+        if (!noPrompt) {
+            enterToContinue();
+        }
+
+        DataItemList mergedList = null;
+        for (int i = 1; i <= MAX_DATABASE_SIZE; i++) {
+            DBRunner source = null;
+            try {
+                source = new SimpleDBRunnerImpl(prop, "db" + i, silent);
+
+                FetchOperation fetchOperation = new FetchOperationImpl(source, orderByKey, silent, keyList);
+                fetchOperation
+                        .setDB(dataBase)
+                        .setTable(tableName)
+                        .setConditions(conditionList);
+                DataItemList list = fetchOperation.fetchList();
+                if (mergedList == null) {
+                    mergedList = new DataItemListImpl(list.toArray(new DataItem[0]));
+                } else {
+                    mergedList = mergedList.merge(list);
+                }
+
+                diffList.add(new Pair<>(source, list));
+            } catch (ParseException e) {
+                logger.info("Could not find DBRunner {}, Running with {} runners%n", i, i - 1);
+                break;
+            } catch (IllegalArgumentException e) {
+                System.err.format("[Error] Error parsing conditions: %s\n",
+                        e.getMessage());
+                return null;
+            } catch (Exception e) {
+                System.err.format("[Error] Error while performing query in datasource %s\n",
+                        Objects.requireNonNull(source).getDBInfo());
+                e.printStackTrace();
+                return null;
+            }
+
+        }
+        if (!noPrompt) {
+            enterToContinue();
+        }
+
+        if (!silent) {
+            System.out.format("[Info] Merged data source: \n");
+            Objects.requireNonNull(mergedList).forEach(dataItem ->
+                    System.out.println(dataItem.toString())
+            );
+        }
+        System.out.format("[Info] Diff merged data with data in each data source\n");
+
+        for (Pair<DBRunner, DataItemList> list : diffList) {
+
+            List<String> updatedList = new LinkedList<>();
+            DataItemList toChangeList = mergedList.diff(list.getValue());
+            DBRunner runner = list.getKey();
+            if (toChangeList.size() == 0) {
+                System.out.format("[Info] No diff found in data source %s\n", runner.getDBInfo());
+                continue;
+            }
+            System.out.format("[Info] Found %d entries to update/insert for data source %s\n",
+                    toChangeList.size(),
+                    runner.getDBInfo());
+            toChangeList.forEach(item -> {
+                String updateSql = item.getUpdateSql(tableName);
+                if (!silent) {
+                    System.out.format("[Info] will Execute SQL >>>\n %s  \n", updateSql);
+                }
+                if (!noPrompt) {
+                    String newCommand;
+                    if ((newCommand = readCommand("Insert your modified command or Press Enter to use origin command ...")) != null) {
+                        updateSql = newCommand;
+                    }
+                }
+                if (execute) {
+
+                    while (!runner.update(dataBase, updateSql)) {
+                        System.err.format("[Error] Execute SQL >>>\n %s  Failed\n", updateSql);
+                        updateSql = readCommand("Modify your command and re-enter, or ENTER to to skip this command ");
+                        if (updateSql == null) {
+                            break;
+                        }
+                    }
+                }
+                updatedList.add(item.getIndex());
+            });
+
+            System.out.format("[Info] Updated id in data source %s are %s\n\n", runner.getDBInfo(), updatedList.toString());
+
+        }
+
+
+        return null;
+    }
 }

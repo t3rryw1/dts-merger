@@ -6,8 +6,8 @@ import com.aliyun.drc.clusterclient.ClusterListener;
 import com.aliyun.drc.clusterclient.DefaultClusterClient;
 import com.aliyun.drc.clusterclient.RegionContext;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
-import com.cozystay.db.SimpleDBWriterImpl;
-import com.cozystay.db.Writer;
+import com.cozystay.db.SimpleDBRunnerImpl;
+import com.cozystay.db.DBRunner;
 import com.cozystay.db.schema.SchemaRuleCollection;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
@@ -24,7 +24,7 @@ public abstract class DTSDataSourceImpl implements DataSource {
     private final String subscribeInstanceID;
     private static Logger logger = LoggerFactory.getLogger(DTSDataSourceImpl.class);
     private final ClusterClient client;
-    private final Writer writer;
+    private final DBRunner DBRunner;
     private final SchemaRuleCollection schemaRuleCollection;
 
     protected DTSDataSourceImpl(Properties prop, String prefix) throws Exception {
@@ -62,7 +62,7 @@ public abstract class DTSDataSourceImpl implements DataSource {
                 dbPort,
                 accessKey,
                 subscribeInstanceID);
-        writer = new SimpleDBWriterImpl(dbAddress, dbPort, dbUser, dbPassword);
+        DBRunner = new SimpleDBRunnerImpl(dbAddress, dbPort, dbUser, dbPassword);
         RegionContext context = new RegionContext();
         context.setUsePublicIp(true);
         context.setAccessKey(accessKey);
@@ -84,8 +84,8 @@ public abstract class DTSDataSourceImpl implements DataSource {
     }
 
     @Override
-    public boolean writeDB(SyncOperation operation) throws SQLException {
-        return this.writer.write(operation);
+    public int writeDB(SyncOperation operation) throws SQLException {
+        return this.DBRunner.write(operation);
 
     }
 

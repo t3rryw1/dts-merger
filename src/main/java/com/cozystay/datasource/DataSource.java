@@ -1,6 +1,5 @@
 package com.cozystay.datasource;
 
-import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 
@@ -11,7 +10,7 @@ public interface DataSource {
 
     void consumeData(SyncTask task);
 
-    boolean writeDB(SyncOperation operation) throws SQLException;
+    int writeDB(SyncOperation operation) throws SQLException;
 
     void start();
 

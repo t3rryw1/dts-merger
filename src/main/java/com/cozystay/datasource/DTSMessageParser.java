@@ -3,6 +3,7 @@ package com.cozystay.datasource;
 import com.aliyun.drc.client.message.DataMessage;
 import com.aliyun.drc.clusterclient.message.ClusterMessage;
 import com.cozystay.db.schema.SchemaRuleCollection;
+import com.cozystay.model.SyncItem;
 import com.cozystay.model.SyncOperation;
 import com.cozystay.model.SyncTask;
 import com.cozystay.model.SyncTaskBuilder;
@@ -116,7 +117,7 @@ public class DTSMessageParser {
         List<DataMessage.Record.Field> fields = record.getFieldList();
         for (int i = 0; i < fields.size(); i += step) {
 
-            SyncOperation.SyncItem item;
+            SyncItem item;
             try {
                 item = parseItem(fields, i, record.getOpt());
             } catch (UnsupportedEncodingException e) {
@@ -129,9 +130,9 @@ public class DTSMessageParser {
         }
     }
 
-    private static SyncOperation.SyncItem parseItem(List<DataMessage.Record.Field> fields,
-                                                    int start,
-                                                    DataMessage.Record.Type type)
+    private static SyncItem parseItem(List<DataMessage.Record.Field> fields,
+                                      int start,
+                                      DataMessage.Record.Type type)
             throws UnsupportedEncodingException {
         DataMessage.Record.Field field = fields.get(start);
         String fieldName = field.getFieldname();
@@ -182,61 +183,61 @@ public class DTSMessageParser {
         }
     }
 
-    private static SyncOperation.SyncItem buildItem(DataMessage.Record.Field field,
-                                                    String fieldName,
-                                                    String originValue,
-                                                    String newValue)
+    private static SyncItem buildItem(DataMessage.Record.Field field,
+                                      String fieldName,
+                                      String originValue,
+                                      String newValue)
             throws ParseException {
         switch (field.getType()) {
             case STRING:
             case JSON:
             case ENUM:
-                return new SyncOperation.SyncItem<>(fieldName,
+                return new SyncItem<>(fieldName,
                         originValue,
                         newValue,
-                        SyncOperation.SyncItem.ColumnType.CHAR,
+                        SyncItem.ColumnType.CHAR,
                         field.isPrimary());
             case INT8:
             case INT16:
             case INT24:
             case INT32:
             case INT64:
-                return new SyncOperation.SyncItem<>(fieldName,
+                return new SyncItem<>(fieldName,
                         Integer.valueOf(originValue),
                         Integer.valueOf(newValue),
-                        SyncOperation.SyncItem.ColumnType.INT,
+                        SyncItem.ColumnType.INT,
                         field.isPrimary());
             case DECIMAL:
             case FLOAT:
             case DOUBLE:
-                return new SyncOperation.SyncItem<>(fieldName,
+                return new SyncItem<>(fieldName,
                         Integer.valueOf(originValue),
                         Integer.valueOf(newValue),
-                        SyncOperation.SyncItem.ColumnType.DECIMAL,
+                        SyncItem.ColumnType.DECIMAL,
                         field.isPrimary());
             case DATE:
             case DATETIME:
             case TIME:
-                return new SyncOperation.SyncItem<>(fieldName,
+                return new SyncItem<>(fieldName,
                         Date.parse(originValue),
                         Date.parse(newValue),
-                        SyncOperation.SyncItem.ColumnType.DATE,
+                        SyncItem.ColumnType.DATE,
                         field.isPrimary());
             case NULL:
                 break;
             case TIMESTAMP:
-                return new SyncOperation.SyncItem<>(fieldName,
+                return new SyncItem<>(fieldName,
                         defaultDateFormat.parse(originValue),
                         defaultDateFormat.parse(newValue),
-                        SyncOperation.SyncItem.ColumnType.TIMESTAMP,
+                        SyncItem.ColumnType.TIMESTAMP,
                         field.isPrimary());
             case YEAR:
                 break;
             case BIT:
-                return new SyncOperation.SyncItem<>(fieldName,
+                return new SyncItem<>(fieldName,
                         Boolean.getBoolean(originValue),
                         Boolean.getBoolean(newValue),
-                        SyncOperation.SyncItem.ColumnType.BIT,
+                        SyncItem.ColumnType.BIT,
                         field.isPrimary());
             case SET:
                 break;

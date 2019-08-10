@@ -30,7 +30,7 @@ public class TestSyncTask {
     public void testMerge(){
         SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.CREATE);
         SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.CREATE);
-        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncItem item = new SyncItem<>("name", "aa", "bb", SyncItem.ColumnType.CHAR,true);
 
         task1.addOperation(
                 new SyncOperationImpl(null,
@@ -60,7 +60,7 @@ public class TestSyncTask {
     public void testMergeStatus(){
         SyncTask task1 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
         SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
-        SyncOperation.SyncItem item = new SyncOperation.SyncItem<>("name", "aa", "bb", SyncOperation.SyncItem.ColumnType.CHAR,true);
+        SyncItem item = new SyncItem<>("name", "aa", "bb", SyncItem.ColumnType.CHAR,true);
         task1.addOperation(new SyncOperationImpl(null,
                 SyncOperation.OperationType.CREATE,
                 new ArrayList<>(Arrays.asList(item)),
@@ -85,47 +85,47 @@ public class TestSyncTask {
         SyncTask task2 = new SyncTaskImpl("id-123-abc","test-db","test-table", SyncOperation.OperationType.UPDATE);
 
         //set items
-        SyncOperation.SyncItem editName1 = new SyncOperation.SyncItem<>(
+        SyncItem editName1 = new SyncItem<>(
                 "name",
                 "aa",
                 "bb",
-                SyncOperation.SyncItem.ColumnType.CHAR,
+                SyncItem.ColumnType.CHAR,
                 true);
 
-        SyncOperation.SyncItem editName2 = new SyncOperation.SyncItem<>(
+        SyncItem editName2 = new SyncItem<>(
                 "name",
                 "aa",
                 "cc",
-                SyncOperation.SyncItem.ColumnType.CHAR,
+                SyncItem.ColumnType.CHAR,
                 true);
 
-        SyncOperation.SyncItem editGender1 = new SyncOperation.SyncItem<>(
+        SyncItem editGender1 = new SyncItem<>(
                 "gender",
                 "men",
                 "women",
-                SyncOperation.SyncItem.ColumnType.CHAR,
+                SyncItem.ColumnType.CHAR,
                 true);
 
-        SyncOperation.SyncItem editGender2 = new SyncOperation.SyncItem<>(
+        SyncItem editGender2 = new SyncItem<>(
                 "gender",
                 "men",
                 "other",
-                SyncOperation.SyncItem.ColumnType.CHAR,
+                SyncItem.ColumnType.CHAR,
                 true);
 
 
-        SyncOperation.SyncItem editOtherField1 = new SyncOperation.SyncItem<>(
+        SyncItem editOtherField1 = new SyncItem<>(
                 "other1",
                 "11",
                 "22",
-                SyncOperation.SyncItem.ColumnType.CHAR,
+                SyncItem.ColumnType.CHAR,
                 true);
 
-        SyncOperation.SyncItem editOtherField2 = new SyncOperation.SyncItem<>(
+        SyncItem editOtherField2 = new SyncItem<>(
                 "other2",
                 "22",
                 "ssd",
-                SyncOperation.SyncItem.ColumnType.CHAR,
+                SyncItem.ColumnType.CHAR,
                 true);
 
 
